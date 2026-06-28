@@ -188,6 +188,10 @@ html, body, [data-testid="stAppViewContainer"] {
 header { background: transparent !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
 
+/* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
+[data-testid="stHeader"] button:not([data-testid="collapsedControl"] button) { display: none !important; }
+[data-testid="stHeader"] a { display: none !important; }
+
 /* Custom premium styling for sidebar toggle button when collapsed */
 [data-testid="collapsedControl"] button {
     background-color: #0f2744 !important;
