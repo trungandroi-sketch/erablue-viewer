@@ -341,6 +341,60 @@ def analyze(query: str, df: pd.DataFrame) -> str:
     if total_original == 0:
         return "⚠️ Không có dữ liệu để phân tích."
 
+    # ─── Try Google Gemini API ───────────────────────────────────────────────
+    import os
+    import streamlit as st
+    
+    gemini_key = None
+    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        gemini_key = st.secrets["GEMINI_API_KEY"]
+    else:
+        gemini_key = os.environ.get("GEMINI_API_KEY")
+        
+    if gemini_key:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=gemini_key)
+            
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            
+            # Format DataFrame as a compact CSV string
+            df_clean = df.fillna("")
+            csv_data = df_clean.to_csv(index=False)
+            
+            prompt = (
+                "Bạn là trợ lý AI thông minh phân tích dữ liệu cửa hàng Erablue Electronics.\n"
+                "Dưới đây là bảng dữ liệu thực tế từ Google Sheet chứa thông tin các cửa hàng, tài nguyên trưng bày (bàn demo, vách thương hiệu các hãng Samsung, Apple, OPPO, Xiaomi, Vivo, Realme, Đa thương hiệu), thiết bị điện máy (tivi treo, tivi đảo, máy lạnh, tủ lạnh, máy giặt), và các cột thông tin phụ trợ (Ngày Setup, ƯỚC TÍNH GO, Kích thước Cửa hàng, Địa chỉ, Khu vực, Tỉnh/Thành phố (Rút gọn)).\n"
+                "Nhiệm vụ của bạn là phân tích dữ liệu này và trả lời câu hỏi của người dùng một cách chính xác.\n\n"
+                "QUY TẮC TRẢ LỜI:\n"
+                "1. Trả lời bằng ngôn ngữ tương thích với câu hỏi của người dùng (Ưu tiên Tiếng Việt hoặc Tiếng Anh theo ngôn ngữ của câu hỏi), định dạng Markdown đẹp mắt.\n"
+                "2. Nếu câu hỏi yêu cầu thống kê (ví dụ: đếm số shop, tỷ lệ %), hãy tính toán chính xác dựa trên dữ liệu.\n"
+                "3. Nếu câu hỏi liên quan đến một cửa hàng cụ thể (bằng ID số hoặc Tên shop), hãy hiển thị thông tin dạng bảng hoặc thẻ thông tin chi tiết các thuộc tính liên quan đến câu hỏi.\n"
+                "4. Hãy viết câu trả lời trực tiếp, không lặp lại câu hỏi của người dùng.\n"
+                "5. Dữ liệu Google Sheets chứa thông tin thực tế, không tự tiện bịa đặt các dữ liệu nằm ngoài bảng CSV dưới đây.\n\n"
+                f"BẢNG DỮ LIỆU CSV ({len(df)} CỬA HÀNG):\n"
+                "```csv\n"
+                f"{csv_data}\n"
+                "```\n\n"
+                f"CÂU HỎI CỦA NGƯỜI DÙNG: {query}"
+            )
+            
+            response = model.generate_content(
+                prompt,
+                generation_config={"temperature": 0.2}
+            )
+            
+            if response.text:
+                return f"""### 🤖 Phân Tích Bởi Siêu Trí Tuệ Nhân Tạo (Gemini 1.5)
+{response.text}
+
+---
+_💡 Phản hồi này được sinh ra bởi mô hình **Google Gemini 1.5 Flash** dựa trên dữ liệu thực tế từ Google Sheets._
+"""
+        except Exception as e:
+            st.warning(f"⚠️ Trợ lý AI (Gemini API) gặp lỗi hoặc chưa cấu hình key: {e}. Hệ thống tự động chuyển sang công cụ phân tích cục bộ.")
+            pass
+
     df_filtered, filters_applied = _apply_query_filters(q, df)
     total = len(df_filtered)
     
