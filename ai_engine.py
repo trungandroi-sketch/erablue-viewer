@@ -356,7 +356,33 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
             
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            # Self-healing model selection based on API key permissions
+            available_models = []
+            try:
+                for m in genai.list_models():
+                    if "generateContent" in m.supported_generation_methods:
+                        available_models.append(m.name)
+            except Exception:
+                pass
+                
+            model_name = "gemini-1.5-flash"
+            if available_models:
+                preferences = ["gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-pro"]
+                matched = None
+                for pref in preferences:
+                    for am in available_models:
+                        if pref in am:
+                            matched = am
+                            break
+                    if matched:
+                        break
+                if matched:
+                    model_name = matched
+                else:
+                    model_name = available_models[0]
+            
+            model_clean = model_name.replace("models/", "")
+            model = genai.GenerativeModel(model_clean)
             
             # Format DataFrame as a compact CSV string
             df_clean = df.fillna("")
