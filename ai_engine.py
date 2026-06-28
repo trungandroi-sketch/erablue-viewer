@@ -384,9 +384,22 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             model_clean = model_name.replace("models/", "")
             model = genai.GenerativeModel(model_clean)
             
-            # Format DataFrame as a compact CSV string
-            df_clean = df.fillna("")
-            csv_data = df_clean.to_csv(index=False)
+            # Optimize DataFrame size: keep only active columns to prevent 429 rate limit errors (TPM)
+            # Active columns are columns that have at least one non-zero, non-dash, non-empty value,
+            # or are core identifiers.
+            cols_to_keep = []
+            core_cols = [ID_COL, NAME_COL, SIZE_COL, AREA_COL, PROV_COL, "Ngày Setup", "ƯỚC TÍNH GO"]
+            for col in df.columns:
+                if col in core_cols:
+                    cols_to_keep.append(col)
+                    continue
+                series_str = df[col].astype(str).str.strip().str.lower()
+                is_active = series_str.apply(lambda x: x not in ["", "-", "0", "0.0", "nan", "none"]).any()
+                if is_active:
+                    cols_to_keep.append(col)
+            
+            df_compact = df[cols_to_keep].fillna("")
+            csv_data = df_compact.to_csv(index=False)
             
             prompt = (
                 "Bạn là trợ lý AI thông minh phân tích dữ liệu cửa hàng Erablue Electronics.\n"

@@ -184,13 +184,23 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 
 /* Hide default Streamlit chrome, but keep header visible for the sidebar toggle button */
-#MainMenu, footer { visibility: hidden; }
+#MainMenu, footer { display: none !important; visibility: hidden !important; }
 header { background: transparent !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
 
 /* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
 [data-testid="stHeader"] button:not([data-testid="collapsedControl"] button) { display: none !important; }
 [data-testid="stHeader"] a { display: none !important; }
+
+/* Hide Streamlit Community Cloud and Hugging Face floating developer/hosting badges at the bottom right */
+[data-testid="stViewerBadge"],
+.viewerBadge,
+[data-testid="stAppShareButton"],
+div[class*="styles_viewerBadge"],
+div[class*="viewerBadge"],
+#ConnectionStatus {
+    display: none !important;
+}
 
 /* Custom premium styling for sidebar toggle button when collapsed */
 [data-testid="collapsedControl"] button {
