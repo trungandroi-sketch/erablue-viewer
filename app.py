@@ -186,7 +186,6 @@ html, body, [data-testid="stAppViewContainer"] {
 /* Hide default Streamlit chrome, but keep header visible for the sidebar toggle button */
 #MainMenu, footer { visibility: hidden; }
 header { background: transparent !important; }
-[data-testid="stHeader"] > div:first-child > div:not([data-testid="collapsedControl"]) { display: none !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
 
 /* Custom premium styling for sidebar toggle button when collapsed */
