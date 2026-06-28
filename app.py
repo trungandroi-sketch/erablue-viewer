@@ -189,7 +189,7 @@ header { background: transparent !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
 
 /* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
-[data-testid="stHeader"] button { display: none !important; }
+[data-testid="stHeader"] button:not([data-testid="stSidebarCollapseButton"]):not([aria-label="Expand sidebar"]) { display: none !important; }
 [data-testid="stHeader"] a { display: none !important; }
 
 /* Hide Streamlit Community Cloud and Hugging Face floating developer/hosting badges at the bottom right */
