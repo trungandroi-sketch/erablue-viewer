@@ -203,7 +203,8 @@ div[class*="viewerBadge"],
 }
 
 /* Custom premium styling for sidebar toggle button when collapsed */
-[data-testid="collapsedControl"] button {
+[data-testid="stHeader"] [data-testid="collapsedControl"],
+[data-testid="stHeader"] [data-testid="collapsedControl"] button {
     display: inline-flex !important;
     background-color: #0f2744 !important;
     border-radius: 0 8px 8px 0 !important;
@@ -212,10 +213,11 @@ div[class*="viewerBadge"],
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     transition: background-color 0.2s !important;
 }
-[data-testid="collapsedControl"] button:hover {
+[data-testid="stHeader"] [data-testid="collapsedControl"]:hover,
+[data-testid="stHeader"] [data-testid="collapsedControl"] button:hover {
     background-color: #1d4ed8 !important;
 }
-[data-testid="collapsedControl"] svg {
+[data-testid="stHeader"] [data-testid="collapsedControl"] svg {
     color: #ffffff !important;
 }
 
