@@ -441,8 +441,19 @@ if menu == "dashboard":
     n_upcoming = 0
     
     if go_col:
-        go_series = pd.to_datetime(df_main[go_col], errors="coerce")
+        # Preprocess date string: replace "xx"/Draft days with "01" to make it parseable for month/year comparisons
+        raw_series = df_main[go_col].astype(str).str.strip()
+        clean_series = raw_series.str.replace(r'^[xX]{2}([/\-])', r'01\1', regex=True)
+        
+        go_series = pd.to_datetime(clean_series, dayfirst=True, errors="coerce")
         today = datetime.date.today()
+        
+        # A valid full date must match DD/MM/YYYY or YYYY-MM-DD and NOT start with "xx" (case-insensitive)
+        is_full_date = (
+            (raw_series.str.match(r'^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$', na=False) |
+             raw_series.str.match(r'^\d{4}[/\-]\d{1,2}[/\-]\d{1,2}$', na=False)) &
+            (~raw_series.str.lower().str.startswith("xx"))
+        )
         
         valid_mask = go_series.notna() & (go_series.dt.year > 1900)
         
@@ -454,8 +465,8 @@ if menu == "dashboard":
         this_month_mask = valid_mask & (go_series.dt.year == today.year) & (go_series.dt.month == today.month)
         n_this_month = int(this_month_mask.sum())
         
-        # Đã khai trương: GO date is in the past (<= today)
-        opened_mask = valid_mask & (go_series.dt.date <= today)
+        # Đã khai trương: GO date is in the past (<= today) AND must be a full valid date (no "xx" or partial month)
+        opened_mask = valid_mask & (go_series.dt.date <= today) & is_full_date
         n_opened = int(opened_mask.sum())
 
     # ── KPI row ────────────────────────────────────────────────────────────
