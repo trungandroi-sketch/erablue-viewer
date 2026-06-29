@@ -42,7 +42,7 @@ T = {
         "refresh": "🔄 Làm mới dữ liệu",
         "refreshed": "Đã làm mới! Dữ liệu mới nhất từ Google Sheets.",
         "live_status": "✅ Live · GSheets",
-        "source_label": "Dữ liệu nguồn: Google Sheets<br>Tự động làm mới mỗi 5 phút",
+        "source_label": "Dữ liệu nguồn: Google Sheets<br>Bấm làm mới để cập nhật dữ liệu mới",
         "offline_status": "⚠️ Ngoại tuyến",
         "db_title": "📊 Dashboard Tổng Quan",
         "db_subtitle": "Báo cáo tài nguyên và độ phủ thương hiệu toàn hệ thống Erablue Electronics",
@@ -110,7 +110,7 @@ T = {
         "refresh": "🔄 Refresh Data",
         "refreshed": "Refreshed! Latest data pulled from Google Sheets.",
         "live_status": "✅ Live · GSheets",
-        "source_label": "Source: Google Sheets<br>Auto-refresh every 5 minutes",
+        "source_label": "Source: Google Sheets<br>Click refresh to update data",
         "offline_status": "⚠️ Offline",
         "db_title": "📊 System Overview Dashboard",
         "db_subtitle": "Resource reports and brand coverage across Erablue Electronics",
@@ -189,7 +189,7 @@ header { background: transparent !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
 
 /* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
-[data-testid="stHeader"] button { display: none !important; }
+[data-testid="stHeader"] button:not([data-testid="stSidebarCollapseButton"]):not([aria-label="Expand sidebar"]) { display: none !important; }
 [data-testid="stHeader"] a { display: none !important; }
 
 /* Hide Streamlit Community Cloud and Hugging Face floating developer/hosting badges at the bottom right */
@@ -202,10 +202,30 @@ div[class*="viewerBadge"],
     display: none !important;
 }
 
-/* Hide sidebar toggle collapse/expand button entirely to keep the sidebar fixed open */
-[data-testid="stSidebarCollapseButton"], 
-[data-testid="collapsedControl"] {
+/* Hide collapse button inside the sidebar to prevent collapsing */
+[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebar"] [aria-label="Collapse sidebar"] {
     display: none !important;
+}
+
+/* Style the expand button in the header when collapsed */
+[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"],
+[data-testid="stHeader"] [aria-label="Expand sidebar"] {
+    display: inline-flex !important;
+    background-color: #0f2744 !important;
+    border-radius: 0 8px 8px 0 !important;
+    color: #ffffff !important;
+    box-shadow: 2px 0 8px rgba(15, 39, 68, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    transition: background-color 0.2s !important;
+}
+[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"]:hover,
+[data-testid="stHeader"] [aria-label="Expand sidebar"]:hover {
+    background-color: #1d4ed8 !important;
+}
+[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] svg,
+[data-testid="stHeader"] [aria-label="Expand sidebar"] svg {
+    color: #ffffff !important;
 }
 
 /* Sidebar */
