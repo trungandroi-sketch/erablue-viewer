@@ -189,7 +189,7 @@ header { background: transparent !important; }
 .block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
 
 /* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
-[data-testid="stHeader"] button:not([data-testid="stSidebarCollapseButton"]):not([aria-label="Expand sidebar"]) { display: none !important; }
+[data-testid="stHeader"] button { display: none !important; }
 [data-testid="stHeader"] a { display: none !important; }
 
 /* Hide Streamlit Community Cloud and Hugging Face floating developer/hosting badges at the bottom right */
@@ -202,26 +202,10 @@ div[class*="viewerBadge"],
     display: none !important;
 }
 
-/* Custom premium styling for sidebar toggle button when collapsed */
-[data-testid="stHeader"] [data-testid="collapsedControl"],
-[data-testid="stHeader"] [data-testid="collapsedControl"] button,
-[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] {
-    display: inline-flex !important;
-    background-color: #0f2744 !important;
-    border-radius: 0 8px 8px 0 !important;
-    color: #ffffff !important;
-    box-shadow: 2px 0 8px rgba(15, 39, 68, 0.2) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    transition: background-color 0.2s !important;
-}
-[data-testid="stHeader"] [data-testid="collapsedControl"]:hover,
-[data-testid="stHeader"] [data-testid="collapsedControl"] button:hover,
-[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"]:hover {
-    background-color: #1d4ed8 !important;
-}
-[data-testid="stHeader"] [data-testid="collapsedControl"] svg,
-[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] svg {
-    color: #ffffff !important;
+/* Hide sidebar toggle collapse/expand button entirely to keep the sidebar fixed open */
+[data-testid="stSidebarCollapseButton"], 
+[data-testid="collapsedControl"] {
+    display: none !important;
 }
 
 /* Sidebar */

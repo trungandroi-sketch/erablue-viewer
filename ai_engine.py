@@ -365,9 +365,9 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             except Exception:
                 pass
                 
-            model_name = "gemini-1.5-flash"
+            model_name = "gemini-2.5-flash"
             if available_models:
-                preferences = ["gemini-1.5-flash", "gemini-2.5-flash", "gemini-1.5-pro", "gemini-pro"]
+                preferences = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
                 matched = None
                 for pref in preferences:
                     for am in available_models:
@@ -383,6 +383,15 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             
             model_clean = model_name.replace("models/", "")
             model = genai.GenerativeModel(model_clean)
+            
+            # Dynamically build model display name
+            model_parts = model_clean.split("-")
+            if len(model_parts) >= 3:
+                model_display_name = f"Gemini {model_parts[1]} {model_parts[2].title()}"
+            elif len(model_parts) == 2:
+                model_display_name = f"Gemini {model_parts[1].title()}"
+            else:
+                model_display_name = f"Gemini {model_clean.title()}"
             
             # Optimize DataFrame size: keep only active columns to prevent 429 rate limit errors (TPM)
             # Active columns are columns that have at least one non-zero, non-dash, non-empty value,
@@ -424,11 +433,11 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             )
             
             if response.text:
-                return f"""### 🤖 Phân Tích Bởi Siêu Trí Tuệ Nhân Tạo (Gemini 1.5)
+                return f"""### 🤖 Phân Tích Bởi Siêu Trí Tuệ Nhân Tạo ({model_display_name})
 {response.text}
 
 ---
-_💡 Phản hồi này được sinh ra bởi mô hình **Google Gemini 1.5 Flash** dựa trên dữ liệu thực tế từ Google Sheets._
+_💡 Phản hồi này được sinh ra bởi mô hình **Google {model_display_name}** dựa trên dữ liệu thực tế từ Google Sheets._
 """
         except Exception as e:
             st.warning(f"⚠️ Trợ lý AI (Gemini API) gặp lỗi hoặc chưa cấu hình key: {e}. Hệ thống tự động chuyển sang công cụ phân tích cục bộ.")
