@@ -346,9 +346,13 @@ def analyze(query: str, df: pd.DataFrame) -> str:
     import streamlit as st
     
     gemini_key = None
-    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-        gemini_key = st.secrets["GEMINI_API_KEY"]
-    else:
+    try:
+        if "GEMINI_API_KEY" in st.secrets:
+            gemini_key = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        pass
+        
+    if not gemini_key:
         gemini_key = os.environ.get("GEMINI_API_KEY")
         
     if gemini_key:
