@@ -517,9 +517,10 @@ if menu == "dashboard":
         today = datetime.date.today()
         
         # A valid full date must match DD/MM/YYYY or YYYY-MM-DD and NOT start with "xx" (case-insensitive)
+        date_only_str = raw_series.str.split().str[0]
         is_full_date = (
-            (raw_series.str.match(r'^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$', na=False) |
-             raw_series.str.match(r'^\d{4}[/\-]\d{1,2}[/\-]\d{1,2}$', na=False)) &
+            (date_only_str.str.match(r'^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$', na=False) |
+             date_only_str.str.match(r'^\d{4}[/\-]\d{1,2}[/\-]\d{1,2}$', na=False)) &
             (~raw_series.str.lower().str.startswith("xx"))
         )
         
@@ -540,9 +541,10 @@ if menu == "dashboard":
         if setup_col:
             raw_setup = df_main[setup_col].astype(str).str.strip()
             setup_series = pd.to_datetime(raw_setup, dayfirst=True, errors="coerce")
+            setup_only_str = raw_setup.str.split().str[0]
             is_full_setup = (
-                (raw_setup.str.match(r'^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$', na=False) |
-                 raw_setup.str.match(r'^\d{4}[/\-]\d{1,2}[/\-]\d{1,2}$', na=False)) &
+                (setup_only_str.str.match(r'^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$', na=False) |
+                 setup_only_str.str.match(r'^\d{4}[/\-]\d{1,2}[/\-]\d{1,2}$', na=False)) &
                 (~raw_setup.str.lower().str.startswith("xx"))
             )
             valid_setup = setup_series.notna() & (setup_series.dt.year > 1900)
