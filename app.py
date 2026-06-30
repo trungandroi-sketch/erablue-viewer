@@ -1090,60 +1090,57 @@ elif menu == "ai":
         ("📊 Tất cả hãng", "Tổng hợp độ phủ tất cả hãng ICT?"),
     ]
 
-    run_query = None
+    # Initialize history
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    # Handle preset quick-actions
+    run_preset = None
     for col, (label, query) in zip(qcols, presets):
         with col:
             if st.button(label, use_container_width=True):
-                st.session_state["ai_input"] = query
-                run_query = query
+                run_preset = query
 
     for col, (label, query) in zip(qcols2, presets2):
         with col:
             if st.button(label, use_container_width=True):
-                st.session_state["ai_input"] = query
-                run_query = query
-
-    if run_query:
-        with st.spinner("AI is analyzing live data..."):
-            result = analyze(run_query, df_main)
-            st.session_state["ai_result"] = result
-            st.session_state["ai_query_used"] = run_query
+                run_preset = query
 
     st.markdown("---")
 
-    # Free-form query
-    query_input = st.text_area(
-        T[lang]["ai_free_query"],
-        value=st.session_state.get("ai_input", ""),
-        height=90,
-        placeholder=T[lang]["ai_placeholder"],
-        key="ai_text_input",
-    )
+    # Render previous chat history
+    chat_container = st.container()
+    with chat_container:
+        for msg in st.session_state["chat_history"]:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
 
-    if st.button(T[lang]["ai_analyze_btn"], type="primary", use_container_width=False):
-        if query_input.strip():
-            with st.spinner("AI is analyzing live data..."):
-                result = analyze(query_input, df_main)
-                st.session_state["ai_result"] = result
-                st.session_state["ai_query_used"] = query_input
-                st.session_state["ai_input"] = query_input
-        else:
-            st.warning("Vui lòng nhập câu hỏi.")
+    # Input handling
+    user_query = st.chat_input(T[lang]["ai_placeholder"])
+    if run_preset:
+        user_query = run_preset
 
-    # Show result
-    if "ai_result" in st.session_state:
-        st.markdown("---")
-        st.markdown(
-            f'<div style="background:#eff6ff;border-left:4px solid #2563eb;'
-            f'padding:10px 16px;border-radius:6px;margin-bottom:12px;font-size:13px;">'
-            f'{T[lang]["ai_query_label"].format(query=st.session_state.get("ai_query_used",""))}</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(st.session_state["ai_result"])
+    if user_query:
+        # Add user query to chat history
+        st.session_state["chat_history"].append({"role": "user", "content": user_query})
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(user_query)
+            
+            with st.chat_message("assistant"):
+                with st.spinner("AI is analyzing live data..." if lang == "vi" else "AI is analyzing live data..."):
+                    response_text = analyze(user_query, df_main, lang=lang)
+                    st.write(response_text)
+                    
+        # Add assistant response to history
+        st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
+        st.rerun()
 
+    # Clear chat button
+    if st.session_state["chat_history"]:
+        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
         if st.button(T[lang]["ai_clear_btn"]):
-            del st.session_state["ai_result"]
-            st.session_state.pop("ai_query_used", None)
+            st.session_state["chat_history"] = []
             st.rerun()
 
     st.markdown("</div>", unsafe_allow_html=True)

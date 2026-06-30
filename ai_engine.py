@@ -333,26 +333,80 @@ _💡 Bạn có thể tra cứu các tài nguyên khác của cửa hàng này b
 """
 
 
+COLUMN_TRANSLATIONS = {
+    "ID Cửa hàng": "Store ID",
+    "Tên Cửa hàng": "Store Name",
+    "Tỉnh/Thành phố (Rút gọn)": "Province (Short)",
+    "Kích thước Cửa hàng": "Store Size",
+    "Khu vực": "Region",
+    "Quận/Huyện": "District",
+    "Địa chỉ": "Address",
+    "AM": "AM",
+    "RSM / Khu vực": "RSM / Region",
+    "ƯỚC TÍNH GO": "GO Estimate",
+    "Ngày Setup": "Setup Date",
+    "Bàn BÀN TƯ VẤN": "Consulting Table",
+    "Mặt tiền Chính (C)": "Main Facade (C)",
+    "Khác (R)": "Other (R)",
+    "Khác (L)": "Other (L)",
+    "Diện tích (m2) Kho Điện máy": "Warehouse Area (m2)",
+    "WC + Phòng Nhân viên": "WC & Staff Room",
+    "Kho + Server": "Warehouse & Server",
+    "Bãi đậu xe": "Parking Area",
+    "Showroom": "Showroom Area",
+    "Tổng diện tích": "Total Area",
+    "Đất trống": "Empty Land",
+    "GHI CHÚ": "Notes",
+}
+
+
 # ─── Main query function ──────────────────────────────────────────────────────
-def analyze(query: str, df: pd.DataFrame) -> str:
-    """Parse a Vietnamese NL query and return a markdown report."""
+def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
+    """Parse a Vietnamese/English NL query and return a markdown report using Gemini or fallback."""
     q = query.lower().strip()
     total_original = len(df)
     if total_original == 0:
-        return "⚠️ Không có dữ liệu để phân tích."
+        return "⚠️ No data available to analyze." if lang == "en" else "⚠️ Không có dữ liệu để phân tích."
 
     # 1. Apply high-precision filters first (Store ID, Size, Location)
-    df_filtered, filters_applied = _apply_query_filters(q, df)
-    total = len(df_filtered)
-    
-    filter_header = ""
-    if filters_applied:
-        filter_header = f"> 📌 **Bộ lọc tự động áp dụng**: {', '.join(filters_applied)}\n>\n"
-
-    # 2. Try Google Gemini API with the FILTERED data!
-    import os
     import streamlit as st
     
+    # Search for store ID in current query or history
+    all_text = q
+    if "chat_history" in st.session_state:
+        for msg in st.session_state["chat_history"]:
+            all_text += " " + msg["content"].lower()
+
+    df_filtered = df.copy()
+    filters_applied = []
+    
+    # 1.1 Store ID filter
+    id_col = _find_col(df, ID_COL)
+    if id_col:
+        nums = re.findall(r'\b\d{5}\b', all_text)
+        if not nums:
+            nums = re.findall(r'\b\d{4,5}\b', all_text)
+        for num in nums:
+            match_rows = df[df[id_col].astype(str).str.strip() == num]
+            if not match_rows.empty:
+                df_filtered = match_rows
+                name_col = _find_col(df, NAME_COL)
+                name_str = f" ({match_rows.iloc[0][name_col]})" if name_col else ""
+                filters_applied.append(f"Store ID: {num}{name_str}" if lang == "en" else f"Cửa hàng ID: **{num}**{name_str}")
+                break
+                
+    # Apply other filters if no store ID matched
+    if len(df_filtered) == total_original:
+        df_filtered, loc_size_filters = _apply_query_filters(q, df)
+        filters_applied.extend(loc_size_filters)
+
+    total = len(df_filtered)
+    filter_header = ""
+    if filters_applied:
+        filter_header = f"> 📌 **Filter applied**: {', '.join(filters_applied)}\n>\n" if lang == "en" else f"> 📌 **Bộ lọc tự động áp dụng**: {', '.join(filters_applied)}\n>\n"
+
+    # 2. Try Google Gemini API with conversational context
+    import os
     gemini_key = None
     try:
         if "GEMINI_API_KEY" in st.secrets:
@@ -394,7 +448,6 @@ def analyze(query: str, df: pd.DataFrame) -> str:
                     model_name = available_models[0]
             
             model_clean = model_name.replace("models/", "")
-            model = genai.GenerativeModel(model_clean)
             
             # Dynamically build model display name
             model_parts = model_clean.split("-")
@@ -405,7 +458,7 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             else:
                 model_display_name = f"Gemini {model_clean.title()}"
             
-            # Optimize DataFrame size: keep only active columns of df_filtered!
+            # Optimize DataFrame size: keep only active columns
             cols_to_keep = []
             core_cols = [ID_COL, NAME_COL, SIZE_COL, AREA_COL, PROV_COL, "Ngày Setup", "ƯỚC TÍNH GO"]
             for col in df_filtered.columns:
@@ -416,41 +469,74 @@ def analyze(query: str, df: pd.DataFrame) -> str:
                 is_active = series_str.apply(lambda x: x not in ["", "-", "0", "0.0", "nan", "none"]).any()
                 if is_active:
                     cols_to_keep.append(col)
+
+            df_compact = df_filtered[cols_to_keep]
             
-            df_compact = df_filtered[cols_to_keep].fillna("")
-            csv_data = df_compact.to_csv(index=False)
+            # Key-Value pair format to prevent alignment confusion for single stores
+            if len(df_compact) == 1:
+                row_dict = df_compact.iloc[0].to_dict()
+                lines = []
+                for k, v in row_dict.items():
+                    val_str = str(v).strip()
+                    if val_str not in ["", "-", "0", "0.0", "nan", "None"]:
+                        display_key = k
+                        if lang == "en" and k in COLUMN_TRANSLATIONS:
+                            display_key = COLUMN_TRANSLATIONS[k]
+                        lines.append(f"{display_key}: {v}")
+                data_payload = "DATA FOR THE SEARCHED STORE:\n" + "\n".join(f"- {line}" for line in lines)
+            else:
+                csv_data = df_compact.fillna("").to_csv(index=False)
+                data_payload = f"CSV DATA TABLE ({len(df_filtered)} STORES):\n```csv\n{csv_data}```"
             
-            prompt = (
-                "Bạn là trợ lý AI thông minh phân tích dữ liệu cửa hàng Erablue Electronics.\n"
-                "Dưới đây là bảng dữ liệu thực tế từ Google Sheet chứa thông tin các cửa hàng, tài nguyên trưng bày (bàn demo, vách thương hiệu các hãng Samsung, Apple, OPPO, Xiaomi, Vivo, Realme, Đa thương hiệu), thiết bị điện máy (tivi treo, tivi đảo, máy lạnh, tủ lạnh, máy giặt), và các cột thông tin phụ trợ (Ngày Setup, ƯỚC TÍNH GO, Kích thước Cửa hàng, Địa chỉ, Khu vực, Tỉnh/Thành phố (Rút gọn)).\n"
-                "Nhiệm vụ của bạn là phân tích dữ liệu này và trả lời câu hỏi của người dùng một cách chính xác.\n\n"
-                "QUY TẮC TRẢ LỜI:\n"
-                "1. Trả lời bằng ngôn ngữ tương thích với câu hỏi của người dùng (Ưu tiên Tiếng Việt hoặc Tiếng Anh theo ngôn ngữ của câu hỏi), định dạng Markdown đẹp mắt.\n"
-                "2. Nếu câu hỏi yêu cầu thống kê (ví dụ: đếm số shop, tỷ lệ %), hãy tính toán chính xác dựa trên dữ liệu.\n"
-                "3. Nếu câu hỏi liên quan đến một cửa hàng cụ thể (bằng ID số hoặc Tên shop), hãy hiển thị thông tin dạng bảng hoặc thẻ thông tin chi tiết các thuộc tính liên quan đến câu hỏi.\n"
-                "4. Hãy viết câu trả lời trực tiếp, không lặp lại câu hỏi của người dùng.\n"
-                "5. Dữ liệu Google Sheets chứa thông tin thực tế, không tự tiện bịa đặt các dữ liệu nằm ngoài bảng CSV dưới đây.\n"
-                "6. Lưu ý: Cột 'Bãi đậu xe' biểu thị diện tích sân xe/bãi đỗ xe của cửa hàng. Hãy đọc kỹ giá trị tương ứng ở cột này.\n\n"
-                f"BẢNG DỮ LIỆU CSV ({len(df_filtered)} CỬA HÀNG):\n"
-                "```csv\n"
-                f"{csv_data}\n"
-                "```\n\n"
-                f"CÂU HỎI CỦA NGƯỜI DÙNG: {query}"
+            # Construct prompts based on selected language
+            if lang == "en":
+                system_instruction = (
+                    "You are a professional AI data analyst for Erablue Electronics store data.\n"
+                    "Your task is to analyze the provided store data and answer the user's question accurately.\n\n"
+                    "RULES FOR RESPONDING:\n"
+                    "1. ALWAYS respond in English, in a clear, professional, and well-structured Markdown format.\n"
+                    "2. If the user asks for statistics (e.g. counting stores, percentages), calculate them accurately from the data.\n"
+                    "3. If the question is about a specific store, show its details in a neat Markdown table or bullet list.\n"
+                    "4. Rely ONLY on the provided data. Do not make up or assume any values not present in the data.\n"
+                    "5. Note: Column 'Bãi đậu xe' (or 'Parking Area') represents the parking lot area of the store in square meters. Read this column's value carefully when asked about parking space or area parkir.\n\n"
+                    f"CONTEXT DATA:\n{data_payload}"
+                )
+            else:
+                system_instruction = (
+                    "Bạn là trợ lý AI thông minh chuyên phân tích dữ liệu cửa hàng Erablue Electronics.\n"
+                    "Nhiệm vụ của bạn là phân tích dữ liệu và trả lời câu hỏi của người dùng một cách chính xác.\n\n"
+                    "QUY TẮC TRẢ LỜI:\n"
+                    "1. LUÔN LUÔN trả lời bằng Tiếng Việt, ngắn gọn, chuyên nghiệp, định dạng Markdown đẹp mắt.\n"
+                    "2. Nếu câu hỏi yêu cầu thống kê (ví dụ: đếm số shop, tỷ lệ %), hãy tính toán chính xác dựa trên dữ liệu.\n"
+                    "3. Nếu câu hỏi liên quan đến một cửa hàng cụ thể, hãy hiển thị thông tin dạng bảng hoặc thẻ thông tin chi tiết các thuộc tính.\n"
+                    "4. Tuyệt đối không tự bịa đặt các dữ liệu nằm ngoài bảng dữ liệu được cung cấp dưới đây.\n"
+                    "5. Lưu ý: Cột 'Bãi đậu xe' biểu thị diện tích sân xe/bãi đỗ xe của cửa hàng. Hãy đọc kỹ giá trị tương ứng ở cột này khi được hỏi về sân xe hoặc bãi đỗ xe.\n\n"
+                    f"DỮ LIỆU ĐỂ PHÂN TÍCH:\n{data_payload}"
+                )
+            
+            # Build conversation history
+            chat_history = []
+            if "chat_history" in st.session_state:
+                # Limit history to last 6 messages to prevent token bloat
+                for msg in st.session_state["chat_history"][-6:]:
+                    role = "user" if msg["role"] == "user" else "model"
+                    chat_history.append({"role": role, "parts": [msg["content"]]})
+            
+            # Use GenerativeModel with system instruction
+            model_with_instruction = genai.GenerativeModel(
+                model_name=model_clean,
+                system_instruction=system_instruction
             )
             
-            response = model.generate_content(
-                prompt,
-                generation_config={"temperature": 0.2}
-            )
+            # Start chat and get response
+            chat = model_with_instruction.start_chat(history=chat_history)
+            response = chat.send_message(query, generation_config={"temperature": 0.1})
             
             if response.text:
-                return f"""### 🤖 Phân Tích Bởi Siêu Trí Tuệ Nhân Tạo ({model_display_name})
-{filter_header}
-{response.text}
-
----
-_💡 Phản hồi này được sinh ra bởi mô hình **Google {model_display_name}** dựa trên dữ liệu thực tế từ Google Sheets._
-"""
+                header_text = f"### 🤖 Analyzed by Super AI ({model_display_name})" if lang == "en" else f"### 🤖 Phân Tích Bởi Siêu Trí Tuệ Nhân Tạo ({model_display_name})"
+                footer_text = f"\n\n---\n_💡 This response was generated by **Google {model_display_name}** based on real-time data._" if lang == "en" else f"\n\n---\n_💡 Phản hồi này được sinh ra bởi mô hình **Google {model_display_name}** dựa trên dữ liệu thực tế từ Google Sheets._"
+                
+                return f"{header_text}\n{filter_header}{response.text}{footer_text}"
         except Exception as e:
             st.warning(f"⚠️ Trợ lý AI (Gemini API) gặp lỗi hoặc chưa cấu hình key: {e}. Hệ thống tự động chuyển sang công cụ phân tích cục bộ.")
             pass
@@ -539,7 +625,7 @@ _💡 Phản hồi này được sinh ra bởi mô hình **Google {model_display
 """
 
     # ── 3. Area distribution ────────────────────────────────────────────────
-    if any(w in q for w in ["khu vực", "area", "thống kê", "phân bổ", "vùng", "phân phối"]):
+    if total > 1 and any(w in q for w in ["khu vực", "area", "thống kê", "phân bổ", "vùng", "phân phối"]):
         area_col = _find_col(df_filtered, AREA_COL)
         if area_col:
             by_area = df_filtered.groupby(area_col).size().sort_values(ascending=False)
@@ -554,7 +640,7 @@ _💡 Phản hồi này được sinh ra bởi mô hình **Google {model_display
 """
 
     # ── 4. All brands summary ───────────────────────────────────────────────
-    if any(w in q for w in ["tổng", "tất cả", "hãng", "độ phủ", "coverage", "brand", "tổng hợp"]):
+    if total > 1 and any(w in q for w in ["tổng", "tất cả", "hãng", "độ phủ", "coverage", "brand", "tổng hợp"]):
         lines = ["| Thương Hiệu | Bàn Demo | Vách/Tủ Tường | Tỷ Lệ Bàn |", "|---|---|---|---|"]
         for brand in BRANDS[:6]:
             tc, _ = _count_positive(df_filtered, brand["table"])
@@ -600,11 +686,13 @@ _💡 Hỏi thêm: "Có mấy shop có bàn OPPO?" / "Shop nào ở Banten?"_
         "bàn": ["bàn", "table"],
         "vách": ["vách", "wall", "tường", "cabinet"],
         "tường": ["vách", "wall", "tường", "cabinet"],
-        "sân xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
-        "đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
-        "đỗ xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
-        "bãi xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
-        "bãi đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
+        "sân xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "đỗ xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "bãi xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "bãi đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "parkir": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "area parkir": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
     }
     
     # Expand keywords using translations

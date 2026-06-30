@@ -181,6 +181,62 @@ FROZEN_WIDTHS = {"ID Cửa hàng": 108, "Tên Cửa hàng": 240, "Tỉnh/Thành 
 
 _FALLBACK_GROUP = {"label": "Khác", "emoji": "📄", "color": "#374151", "text": "#ffffff"}
 
+GROUP_TRANSLATIONS = {
+    "Samsung": "Samsung",
+    "Apple": "Apple",
+    "OPPO": "OPPO",
+    "Xiaomi": "Xiaomi",
+    "Vivo": "Vivo",
+    "Realme": "Realme",
+    "Đa Thương Hiệu": "Multi-brand",
+    "Phụ Kiện & Laptop": "Accessories & Laptop",
+    "Tài Nguyên Erablue": "Erablue Resources",
+    "TV Treo Tường (Vị Trí)": "TV Wall (Positions)",
+    "TV Đảo (Island)": "TV Island",
+    "Máy Lạnh Treo Tường": "Wall AC",
+    "Tủ Lạnh Treo Tường": "Wall Fridge",
+    "Máy Giặt Đảo (Island WM)": "Island Washing Machine",
+    "SDA": "SDA",
+    "Poster Tường": "Poster Wall",
+    "Bàn & Mặt Tiền & Diện Tích": "Table & Facade & Area",
+}
+
+COLUMN_TRANSLATIONS = {
+    "ID Cửa hàng": "Store ID",
+    "ID Store": "Store ID",
+    "Store ID": "Store ID",
+    "Tên Cửa hàng": "Store Name",
+    "Shop Name": "Store Name",
+    "Store Name": "Store Name",
+    "Tỉnh/Thành phố (Rút gọn)": "Province (Short)",
+    "Province (Short)": "Province (Short)",
+    "Kích thước Cửa hàng": "Store Size",
+    "Size": "Size",
+    "Khu vực": "Region",
+    "Region": "Region",
+    "Quận/Huyện": "District",
+    "Địa chỉ": "Address",
+    "AM": "AM",
+    "RSM / Khu vực": "RSM / Region",
+    "ƯỚC TÍNH GO": "GO Estimate",
+    "Ngày Setup": "Setup Date",
+    "Bàn BÀN TƯ VẤN": "Consulting Table",
+    "Mặt tiền Chính (C)": "Main Facade (C)",
+    "Khác (R)": "Other (R)",
+    "Khác (L)": "Other (L)",
+    "Diện tích (m2) Kho Điện máy": "Warehouse Area (m2)",
+    "WC + Phòng Nhân viên": "WC & Staff Room",
+    "Kho + Server": "Warehouse & Server",
+    "Bãi đậu xe": "Parking Area",
+    "Showroom": "Showroom Area",
+    "Tổng diện tích": "Total Area",
+    "Đất trống": "Empty Land",
+    "Vách": "Wall Brand",
+    "GHI CHÚ": "Notes",
+    "Kệ": "SDA Shelves",
+    "Tường.3": "SDA Wall",
+}
+
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 def _normalize(col: str) -> str:
@@ -252,7 +308,7 @@ def _fmt(val) -> tuple[str, str]:
 
 
 # ─── Main renderer ────────────────────────────────────────────────────────────
-def render_sticky_table(df: pd.DataFrame, max_height: int = 820) -> str:
+def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi") -> str:
     """
     Returns a self-contained HTML page string.
     Render with: st.components.v1.html(html, height=max_height+40, scrolling=False)
@@ -311,17 +367,22 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820) -> str:
             c = s["col"]
             lft = offsets[c]
             w = FROZEN_WIDTHS.get(c, 150)
-            label = _html.escape(_short(c))
+            label = _short(c)
+            if lang == "en" and label in COLUMN_TRANSLATIONS:
+                label = COLUMN_TRANSLATIONS[label]
             h1 += (
                 f'<th rowspan="2" style="position:sticky;left:{lft}px;top:0;z-index:25;'
                 f'min-width:{w}px;max-width:{w}px;background:#0f2744;color:#93c5fd;'
                 f'font-weight:700;padding:8px 10px;white-space:nowrap;text-align:left;'
-                f'border-right:2px solid rgba(255,255,255,.2);font-size:11px;">{label}</th>'
+                f'border-right:2px solid rgba(255,255,255,.2);font-size:11px;">{_html.escape(label)}</th>'
             )
         else:
             g = s.get("group") or _FALLBACK_GROUP
             n = len(s["cols"])
-            lbl = _html.escape(f"{g['emoji']} {g['label']}")
+            grp_label = g["label"]
+            if lang == "en" and grp_label in GROUP_TRANSLATIONS:
+                grp_label = GROUP_TRANSLATIONS[grp_label]
+            lbl = _html.escape(f"{g['emoji']} {grp_label}")
             h1 += (
                 f'<th colspan="{n}" style="position:sticky;top:0;z-index:12;'
                 f'background:{g["color"]};color:{g["text"]};font-size:10px;font-weight:700;'
@@ -337,13 +398,15 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820) -> str:
             continue
         g = s.get("group") or _FALLBACK_GROUP
         for c in s["cols"]:
-            sn = _html.escape(_short(c))
+            sn = _short(c)
+            if lang == "en" and sn in COLUMN_TRANSLATIONS:
+                sn = COLUMN_TRANSLATIONS[sn]
             h2 += (
                 f'<th style="position:sticky;top:33px;z-index:11;'
                 f'background:{g["color"]};filter:brightness(.78);color:{g["text"]};'
                 f'font-size:10px;font-weight:600;padding:5px 8px;text-align:center;'
                 f'white-space:nowrap;min-width:82px;'
-                f'border-left:1px solid rgba(255,255,255,.1);">{sn}</th>'
+                f'border-left:1px solid rgba(255,255,255,.1);">{_html.escape(sn)}</th>'
             )
 
     # ── Body rows ─────────────────────────────────────────────────────────
@@ -388,18 +451,20 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820) -> str:
         if c == FROZEN_COLS[0] if FROZEN_COLS else None:
             lft = offsets[c]
             w = FROZEN_WIDTHS[c]
+            total_lbl = "∑ TOTAL" if lang == "en" else "∑ TỔNG"
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
                 f'background:#0a1f44;color:#60a5fa;font-weight:700;padding:6px 10px;'
-                f'text-align:left;border-top:2px solid #3b82f6;">∑ TỔNG</td>'
+                f'text-align:left;border-top:2px solid #3b82f6;">{total_lbl}</td>'
             )
         elif len(frozen_present) > 1 and c == FROZEN_COLS[1]:
             lft = offsets[c]
             w = FROZEN_WIDTHS[c]
+            store_count_lbl = f"{len(df)} stores" if lang == "en" else f"{len(df)} cửa hàng"
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
                 f'background:#0a1f44;color:#60a5fa;font-weight:700;padding:6px 10px;'
-                f'text-align:left;border-top:2px solid #3b82f6;">{len(df)} cửa hàng</td>'
+                f'text-align:left;border-top:2px solid #3b82f6;">{store_count_lbl}</td>'
             )
         elif c in frozen_present:
             lft = offsets[c]
