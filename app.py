@@ -319,6 +319,51 @@ button:active, [data-testid="stDownloadButton"] button:active, .stButton button:
 .data-badge-warn {
     background: #fef9c3; color: #a16207;
 }
+
+/* Style Streamlit radio buttons as premium navigation menus in the sidebar */
+[data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 8px !important;
+    background: transparent !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
+    color: #cbd5e1 !important;
+    cursor: pointer !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    margin: 0 !important;
+    flex: 1 !important;
+    width: 100% !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3) !important;
+    color: #ffffff !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {
+    font-size: 13px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -380,8 +425,8 @@ with st.sidebar:
                     unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div style="position:absolute;bottom:16px;left:0;right:0;text-align:center;">
-        <div style="font-size:10px;color:#475569;">
+    <div style="text-align:center; margin-top: 35px; padding-bottom: 20px;">
+        <div style="font-size:10px;color:#94a3b8;">
             {T[lang]["source_label"]}
         </div>
     </div>
