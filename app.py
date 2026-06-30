@@ -1012,15 +1012,24 @@ elif menu == "ai":
         ("📊 Tất cả hãng", "Tổng hợp độ phủ tất cả hãng ICT?"),
     ]
 
+    run_query = None
     for col, (label, query) in zip(qcols, presets):
         with col:
             if st.button(label, use_container_width=True):
                 st.session_state["ai_input"] = query
+                run_query = query
 
     for col, (label, query) in zip(qcols2, presets2):
         with col:
             if st.button(label, use_container_width=True):
                 st.session_state["ai_input"] = query
+                run_query = query
+
+    if run_query:
+        with st.spinner("AI is analyzing live data..."):
+            result = analyze(run_query, df_main)
+            st.session_state["ai_result"] = result
+            st.session_state["ai_query_used"] = run_query
 
     st.markdown("---")
 
@@ -1039,6 +1048,7 @@ elif menu == "ai":
                 result = analyze(query_input, df_main)
                 st.session_state["ai_result"] = result
                 st.session_state["ai_query_used"] = query_input
+                st.session_state["ai_input"] = query_input
         else:
             st.warning("Vui lòng nhập câu hỏi.")
 
