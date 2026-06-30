@@ -812,19 +812,19 @@ elif menu == "viewer":
             "Vị trí TCL", "TCL",
         ]),
         ("tv_island", "📺 TV Đảo (Island TV)", "📺 Island TV", [
-            "TV Đảo (Nguyên tắc) (/Kệ) Samsung",
+            "TV đảo principle (Nguyên tắc) (/Kệ) Samsung",
             "Sharp .1", "Sony", "Polytron .1", "Toshiba .1", "TCL .1",
         ]),
         ("ac_fridge", "❌️ Máy Lạnh & Tủ Lạnh Hãng", "❌️ AC & Fridge by Brand", [
-            "Máy lạnh Treo tường (SL) Panasonic",
+            "Máy lạnh principle (SL) Panasonic",
             "Daikin", "LG", "Samsung",
             "Polytron .2", "Sharp .2", "Midea", "Gree",
             "Aqua", "TCL .2", "Electrolux",
-            "Tủ lạnh Treo tường (/Kệ) Midea",
+            "Tủ lạnh principle (/Kệ) Midea",
             "TCL .3", "Aqua .1", "Polytron .3", "Sharp .3", "Toshiba .2",
         ]),
         ("wm_sda", "🦺 WM Đảo & SDA", "🦺 WM Island & SDA", [
-            "MÁY GIẶT ĐẢO Midea",
+            "MÁY GIAT PRINCIPLE Midea",
             "TCL .4", "Aqua .2", "Polytron .4", "Sharp .4", "Toshiba .3",
             "TV đầu tiên của dòng", "Kệ SDA đầu tiên",
             "SDA MIYAKO (TƯỜNG)", "MIYAKO (ENDCAP)",

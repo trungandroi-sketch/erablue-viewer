@@ -110,7 +110,7 @@ COLUMN_GROUPS = [
         "label": "TV Đảo (Island)", "emoji": "📺",
         "color": "#4c1d95", "text": "#ffffff",
         "cols": [
-            "TV Đảo (Nguyên tắc) (/Kệ) Samsung",
+            "TV đảo principle (Nguyên tắc) (/Kệ) Samsung",
             "Sharp .1", "Sony", "Polytron .1", "Toshiba .1", "TCL .1",
         ],
     },
@@ -118,7 +118,7 @@ COLUMN_GROUPS = [
         "label": "Máy Lạnh Treo Tường", "emoji": "❄️",
         "color": "#0369a1", "text": "#ffffff",
         "cols": [
-            "Máy lạnh Treo tường (SL) Panasonic",
+            "Máy lạnh principle (SL) Panasonic",
             "Daikin", "LG", "Samsung",
             "Polytron .2", "Sharp .2", "Midea", "Gree",
             "Aqua", "TCL .2", "Electrolux",
