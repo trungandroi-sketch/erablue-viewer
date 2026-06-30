@@ -341,7 +341,15 @@ def analyze(query: str, df: pd.DataFrame) -> str:
     if total_original == 0:
         return "⚠️ Không có dữ liệu để phân tích."
 
-    # ─── Try Google Gemini API ───────────────────────────────────────────────
+    # 1. Apply high-precision filters first (Store ID, Size, Location)
+    df_filtered, filters_applied = _apply_query_filters(q, df)
+    total = len(df_filtered)
+    
+    filter_header = ""
+    if filters_applied:
+        filter_header = f"> 📌 **Bộ lọc tự động áp dụng**: {', '.join(filters_applied)}\n>\n"
+
+    # 2. Try Google Gemini API with the FILTERED data!
     import os
     import streamlit as st
     
@@ -397,21 +405,19 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             else:
                 model_display_name = f"Gemini {model_clean.title()}"
             
-            # Optimize DataFrame size: keep only active columns to prevent 429 rate limit errors (TPM)
-            # Active columns are columns that have at least one non-zero, non-dash, non-empty value,
-            # or are core identifiers.
+            # Optimize DataFrame size: keep only active columns of df_filtered!
             cols_to_keep = []
             core_cols = [ID_COL, NAME_COL, SIZE_COL, AREA_COL, PROV_COL, "Ngày Setup", "ƯỚC TÍNH GO"]
-            for col in df.columns:
+            for col in df_filtered.columns:
                 if col in core_cols:
                     cols_to_keep.append(col)
                     continue
-                series_str = df[col].astype(str).str.strip().str.lower()
+                series_str = df_filtered[col].astype(str).str.strip().str.lower()
                 is_active = series_str.apply(lambda x: x not in ["", "-", "0", "0.0", "nan", "none"]).any()
                 if is_active:
                     cols_to_keep.append(col)
             
-            df_compact = df[cols_to_keep].fillna("")
+            df_compact = df_filtered[cols_to_keep].fillna("")
             csv_data = df_compact.to_csv(index=False)
             
             prompt = (
@@ -423,8 +429,9 @@ def analyze(query: str, df: pd.DataFrame) -> str:
                 "2. Nếu câu hỏi yêu cầu thống kê (ví dụ: đếm số shop, tỷ lệ %), hãy tính toán chính xác dựa trên dữ liệu.\n"
                 "3. Nếu câu hỏi liên quan đến một cửa hàng cụ thể (bằng ID số hoặc Tên shop), hãy hiển thị thông tin dạng bảng hoặc thẻ thông tin chi tiết các thuộc tính liên quan đến câu hỏi.\n"
                 "4. Hãy viết câu trả lời trực tiếp, không lặp lại câu hỏi của người dùng.\n"
-                "5. Dữ liệu Google Sheets chứa thông tin thực tế, không tự tiện bịa đặt các dữ liệu nằm ngoài bảng CSV dưới đây.\n\n"
-                f"BẢNG DỮ LIỆU CSV ({len(df)} CỬA HÀNG):\n"
+                "5. Dữ liệu Google Sheets chứa thông tin thực tế, không tự tiện bịa đặt các dữ liệu nằm ngoài bảng CSV dưới đây.\n"
+                "6. Lưu ý: Cột 'Bãi đậu xe' biểu thị diện tích sân xe/bãi đỗ xe của cửa hàng. Hãy đọc kỹ giá trị tương ứng ở cột này.\n\n"
+                f"BẢNG DỮ LIỆU CSV ({len(df_filtered)} CỬA HÀNG):\n"
                 "```csv\n"
                 f"{csv_data}\n"
                 "```\n\n"
@@ -438,6 +445,7 @@ def analyze(query: str, df: pd.DataFrame) -> str:
             
             if response.text:
                 return f"""### 🤖 Phân Tích Bởi Siêu Trí Tuệ Nhân Tạo ({model_display_name})
+{filter_header}
 {response.text}
 
 ---
@@ -446,13 +454,6 @@ _💡 Phản hồi này được sinh ra bởi mô hình **Google {model_display
         except Exception as e:
             st.warning(f"⚠️ Trợ lý AI (Gemini API) gặp lỗi hoặc chưa cấu hình key: {e}. Hệ thống tự động chuyển sang công cụ phân tích cục bộ.")
             pass
-
-    df_filtered, filters_applied = _apply_query_filters(q, df)
-    total = len(df_filtered)
-    
-    filter_header = ""
-    if filters_applied:
-        filter_header = f"> 📌 **Bộ lọc tự động áp dụng**: {', '.join(filters_applied)}\n>\n"
 
     # ── 0. High-precision brand-category resolver ───────────────────────────
     resolved_col = _resolve_specific_column(q, df)
@@ -583,7 +584,6 @@ _💡 Hỏi thêm: "Có mấy shop có bàn OPPO?" / "Shop nào ở Banten?"_
     }
     keywords = [w for w in words if w not in stop_words and len(w) > 1]
     
-    # Map common English/Vietnamese terms
     translations = {
         "tv": ["tv", "television", "tivi"],
         "tivi": ["tv", "television", "tivi"],
@@ -600,6 +600,11 @@ _💡 Hỏi thêm: "Có mấy shop có bàn OPPO?" / "Shop nào ở Banten?"_
         "bàn": ["bàn", "table"],
         "vách": ["vách", "wall", "tường", "cabinet"],
         "tường": ["vách", "wall", "tường", "cabinet"],
+        "sân xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
+        "đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
+        "đỗ xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
+        "bãi xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
+        "bãi đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe"],
     }
     
     # Expand keywords using translations
