@@ -466,9 +466,7 @@ if menu == "dashboard":
         n_this_month = int(this_month_mask.sum())
         
         # Đã khai trương: GO date is in the past (<= today) AND must be a full valid date (no "xx" or partial month)
-        # OR the GO date is blank (which represents existing/already opened stores)
-        opened_mask = (valid_mask & (go_series.dt.date <= today) & is_full_date) | \
-                      (df_main[go_col].isna() | (df_main[go_col].astype(str).str.strip() == ""))
+        opened_mask = valid_mask & (go_series.dt.date <= today) & is_full_date
         n_opened = int(opened_mask.sum())
 
     # ── KPI row ────────────────────────────────────────────────────────────
