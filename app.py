@@ -244,6 +244,14 @@ div[class*="viewerBadge"],
 }
 .page-wrap { animation: fadeUp .35s ease both; }
 
+/* Micro-animations and transitions for premium feel */
+button, [data-testid="stDownloadButton"] button, .stButton button, [data-testid="stBaseButton-secondary"] {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+button:active, [data-testid="stDownloadButton"] button:active, .stButton button:active {
+    transform: scale(0.97) !important;
+}
+
 /* KPI Cards */
 .kpi-card {
     background: #ffffff;
@@ -844,15 +852,30 @@ elif menu == "viewer":
         }
 
     if sheet_choice == "Erablue Existing":
-        part_key = st.selectbox(
-            T[lang]["partition_label"],
-            list(PARTITIONS.keys()),
-            help=T[lang]["partition_help"],
-        )
-        part_cols = PARTITIONS[part_key]
+        pcol1, pcol2 = st.columns([2, 1])
+        with pcol1:
+            part_key = st.selectbox(
+                T[lang]["partition_label"],
+                list(PARTITIONS.keys()),
+                help=T[lang]["partition_help"],
+            )
+            part_cols = PARTITIONS[part_key]
+        with pcol2:
+            limit_choice = st.selectbox(
+                "⚡ Tốc độ tải (Số dòng):" if lang == "vi" else "⚡ Load speed (Rows):",
+                [50, 100, 200, "Hiển thị tất cả" if lang == "vi" else "Show all"],
+                index=0,
+                help="Giới hạn số dòng hiển thị của bảng lớn để tối ưu tốc độ load và hiệu năng trình duyệt." if lang == "vi" else "Limits rows to maximize render speed and browser performance."
+            )
     else:
         part_key = ""
         part_cols = None
+        limit_choice = st.selectbox(
+            "⚡ Tốc độ tải (Số dòng):" if lang == "vi" else "⚡ Load speed (Rows):",
+            [50, 100, 200, "Hiển thị tất cả" if lang == "vi" else "Show all"],
+            index=0,
+            help="Giới hạn số dòng hiển thị của bảng lớn để tối ưu tốc độ load và hiệu năng trình duyệt." if lang == "vi" else "Limits rows to maximize render speed and browser performance."
+        )
 
     # Build display dataframe
     CORE_ID_COLS = ["ID Cửa hàng", "Tên Cửa hàng", "Tỉnh/Thành phố (Rút gọn)", "Kích thước Cửa hàng", "Khu vực"]
@@ -864,13 +887,23 @@ elif menu == "viewer":
         display_df = filtered
 
     total_rows = len(display_df)
+    
+    # Slice dataframe if speed limit is active
+    if limit_choice not in ["Hiển thị tất cả", "Show all"]:
+        display_df_limited = display_df.head(int(limit_choice))
+        limited_active = True
+    else:
+        display_df_limited = display_df
+        limited_active = False
 
     # Display row count and Export button
     dcol_left, dcol_right = st.columns([3, 1])
     with dcol_left:
+        limit_text = f" (đã tối ưu hiển thị {limit_choice} dòng)" if limited_active and total_rows > int(limit_choice) else ""
+        limit_text_en = f" (displaying first {limit_choice} rows)" if limited_active and total_rows > int(limit_choice) else ""
         st.markdown(
             f'<div style="padding-top:8px;font-size:13px;color:#64748b;">'
-            f'{T[lang]["show_count"].format(count=total_rows, cols=len(display_df.columns))}</div>',
+            f'{T[lang]["show_count"].format(count=total_rows, cols=len(display_df.columns))}{limit_text if lang == "vi" else limit_text_en}</div>',
             unsafe_allow_html=True,
         )
     with dcol_right:
@@ -886,8 +919,8 @@ elif menu == "viewer":
             )
 
     # Render the sticky HTML table
-    if not display_df.empty:
-        html_out = render_sticky_table(display_df, max_height=820)
+    if not display_df_limited.empty:
+        html_out = render_sticky_table(display_df_limited, max_height=820)
         components.html(html_out, height=875, scrolling=False)
     else:
         st.info(T[lang]["no_data"])
