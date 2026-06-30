@@ -128,7 +128,7 @@ COLUMN_GROUPS = [
         "label": "Tủ Lạnh Treo Tường", "emoji": "🧊",
         "color": "#0284c7", "text": "#ffffff",
         "cols": [
-            "Tủ lạnh Treo tường (/Kệ) Midea",
+            "Tủ lạnh principle (/Kệ) Midea",
             "TCL .3", "Aqua .1", "Polytron .3", "Sharp .3", "Toshiba .2",
         ],
     },
@@ -136,7 +136,7 @@ COLUMN_GROUPS = [
         "label": "Máy Giặt Đảo (Island WM)", "emoji": "🧺",
         "color": "#0f766e", "text": "#ffffff",
         "cols": [
-            "MÁY GIẶT ĐẢO Midea",
+            "MÁY GIAT PRINCIPLE Midea",
             "TCL .4", "Aqua .2", "Polytron .4", "Sharp .4", "Toshiba .3",
         ],
     },
@@ -208,16 +208,19 @@ def _short(col: str) -> str:
     nc = _normalize(col)
     if "Tủ Tường Thương hiệu" in nc:
         return "Vách"
+    if "Đa thương hiệu" in nc:
+        return "Đa thương hiệu"
     STRIP = [
         "Samsung ", "Apple 1.2m ", "OPPO ", "Xiaomi ", "Vivo ", "Realme ",
-        "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix ) ",
         "Tài nguyên cho Erablue Electronics ", "Tài nguyên Layout ",
         "Tài nguyên Thực tế ",
         "TV Treo tường (Vị trí ưu tiên) ",
         "TV Đảo (Nguyên tắc) (/Kệ) ",
         "Máy lạnh Treo tường (SL) ",
         "Tủ lạnh Treo tường (/Kệ) ",
+        "Tủ lạnh principle (/Kệ) ",
         "MÁY GIẶT ĐẢO ",
+        "MÁY GIAT PRINCIPLE ",
         "SDA ", "POSTER TƯỜNG ",
         "Tủ Tường Thương hiệu",
         "LAPTOP PRINCIPLE ",
