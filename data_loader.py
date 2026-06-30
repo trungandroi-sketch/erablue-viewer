@@ -65,8 +65,82 @@ def load_sheet(sheet_name: str) -> pd.DataFrame:
     for r in range(1, sheet.max_row + 1):
         rows.append([sheet.cell(r, c).value for c in range(1, sheet.max_column + 1)])
         
+    # Custom parser for "Erablue Existing"
+    if sheet_name == "Erablue Existing":
+        r1 = rows[0] if len(rows) > 0 else []
+        r2 = rows[1] if len(rows) > 1 else []
+        
+        headers = []
+        for i in range(len(r1)):
+            p = str(r1[i]).strip() if r1[i] is not None else ""
+            c = str(r2[i]).strip() if r2[i] is not None else ""
+            if p and c:
+                if p.lower() == c.lower() or c == "":
+                    headers.append(p)
+                else:
+                    headers.append(f"{p} {c}")
+            elif p:
+                headers.append(p)
+            elif c:
+                headers.append(c)
+            else:
+                headers.append(f"Col_{i}")
+                
+        data_rows = rows[2:] if len(rows) > 2 else []
+        df = pd.DataFrame(data_rows, columns=headers)
+        df = df.dropna(how="all", axis=1)
+        id_col = next((c for c in df.columns if "ID" in c and "Cửa hàng" in c), None)
+        if id_col:
+            df = df[df[id_col].notna() & (df[id_col].astype(str).str.strip() != "")]
+
+    # Custom parser for "Sellout Fixture"
+    elif sheet_name == "Sellout Fixture":
+        headers = [str(val).strip() if val is not None else f"Col_{i}" for i, val in enumerate(rows[2])]
+        data_rows = rows[4:] if len(rows) > 4 else []
+        df = pd.DataFrame(data_rows, columns=headers)
+        df = df.dropna(how="all", axis=1)
+        id_col = next((c for c in df.columns if "ID" in c or "Id" in c or "id" in c.lower()), None)
+        if id_col:
+            df = df[df[id_col].notna() & (df[id_col].astype(str).str.strip() != "")]
+
+    # Custom parser for "Banner"
+    elif sheet_name == "Banner":
+        r3 = rows[2] if len(rows) > 2 else []
+        r4 = rows[3] if len(rows) > 3 else []
+        headers = []
+        for i in range(len(r3)):
+            p = str(r3[i]).strip() if r3[i] is not None else ""
+            c = str(r4[i]).strip() if r4[i] is not None else ""
+            if p and c:
+                if p.lower() == c.lower() or c == "":
+                    headers.append(p)
+                else:
+                    headers.append(f"{p} {c}")
+            elif p:
+                headers.append(p)
+            elif c:
+                headers.append(c)
+            else:
+                headers.append(f"Col_{i}")
+        data_rows = rows[4:] if len(rows) > 4 else []
+        df = pd.DataFrame(data_rows, columns=headers)
+        df = df.dropna(how="all", axis=1)
+        id_col = next((c for c in df.columns if "ID" in c or "Id" in c or "id" in c.lower()), None)
+        if id_col:
+            df = df[df[id_col].notna() & (df[id_col].astype(str).str.strip() != "")]
+
+    # Custom parser for "2 lantai"
+    elif sheet_name == "2 lantai":
+        headers = [str(val).strip() if val is not None else f"Col_{i}" for i, val in enumerate(rows[0])]
+        data_rows = rows[1:] if len(rows) > 1 else []
+        df = pd.DataFrame(data_rows, columns=headers)
+        df = df.dropna(how="all", axis=1)
+        id_col = next((c for c in df.columns if "ID" in c or "Id" in c or "id" in c.lower()), None)
+        if id_col:
+            df = df[df[id_col].notna() & (df[id_col].astype(str).str.strip() != "")]
+            
     # Custom parser for "Reklame store"
-    if sheet_name == "Reklame store":
+    elif sheet_name == "Reklame store":
         r3 = rows[2] if len(rows) > 2 else []
         r4 = rows[3] if len(rows) > 3 else []
         
