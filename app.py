@@ -466,7 +466,22 @@ if menu == "dashboard":
         n_this_month = int(this_month_mask.sum())
         
         # Đã khai trương: GO date is in the past (<= today) AND must be a full valid date (no "xx" or partial month)
-        opened_mask = valid_mask & (go_series.dt.date <= today) & is_full_date
+        # OR has a valid Ngày Setup date in the past when GO date is blank (excluding xx and blank setup dates)
+        opened_setup = pd.Series([False] * len(df_main), index=df_main.index)
+        setup_col = next((c for c in df_main.columns if "setup" in c.lower() and "ngày" in c.lower()), None)
+        if setup_col:
+            raw_setup = df_main[setup_col].astype(str).str.strip()
+            setup_series = pd.to_datetime(raw_setup, dayfirst=True, errors="coerce")
+            is_full_setup = (
+                (raw_setup.str.match(r'^\d{1,2}[/\-]\d{1,2}[/\-]\d{4}$', na=False) |
+                 raw_setup.str.match(r'^\d{4}[/\-]\d{1,2}[/\-]\d{1,2}$', na=False)) &
+                (~raw_setup.str.lower().str.startswith("xx"))
+            )
+            valid_setup = setup_series.notna() & (setup_series.dt.year > 1900)
+            opened_setup = (df_main[go_col].isna() | (df_main[go_col].astype(str).str.strip() == "")) & \
+                           valid_setup & (setup_series.dt.date <= today) & is_full_setup
+        
+        opened_mask = (valid_mask & (go_series.dt.date <= today) & is_full_date) | opened_setup
         n_opened = int(opened_mask.sum())
 
     # ── KPI row ────────────────────────────────────────────────────────────
