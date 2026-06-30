@@ -8,6 +8,7 @@ import datetime
 import ssl
 import urllib.parse
 import urllib.request
+import openpyxl
 
 import pandas as pd
 import streamlit as st
@@ -33,29 +34,117 @@ except ImportError:
     _SSL = ssl.create_default_context()
 
 
-# ─── Internal helpers ─────────────────────────────────────────────────────────
-def _gviz_url(sheet_name: str) -> str:
-    enc = urllib.parse.quote(sheet_name)
-    return (
-        f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
-        f"/gviz/tq?tqx=out:csv&sheet={enc}"
-    )
+# Global in-memory cache for XLSX bytes to avoid downloading it multiple times
+_XLSX_BYTES = None
 
 
-def _fetch(sheet_name: str) -> str:
-    url = _gviz_url(sheet_name)
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=15, context=_SSL) as r:
-        return r.read().decode("utf-8")
+def _download_xlsx() -> bytes:
+    global _XLSX_BYTES
+    if _XLSX_BYTES is None:
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30, context=_SSL) as r:
+            _XLSX_BYTES = r.read()
+    return _XLSX_BYTES
 
 
 # ─── Public API ───────────────────────────────────────────────────────────────
 @st.cache_data(ttl=CACHE_TTL, show_spinner=False)
 def load_sheet(sheet_name: str) -> pd.DataFrame:
     """Load one sheet; cached for CACHE_TTL seconds. Normalizes column names to be unique."""
-    raw = _fetch(sheet_name)
-    df = pd.read_csv(io.StringIO(raw), header=0, dtype=str)
-    df = df.dropna(how="all")
+    xlsx_data = _download_xlsx()
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx_data), data_only=True)
+    
+    if sheet_name not in wb.sheetnames:
+        raise ValueError(f"Sheet '{sheet_name}' not found in the Google Sheet.")
+        
+    sheet = wb[sheet_name]
+    
+    # Read all rows from sheet
+    rows = []
+    for r in range(1, sheet.max_row + 1):
+        rows.append([sheet.cell(r, c).value for c in range(1, sheet.max_column + 1)])
+        
+    # Custom parser for "Reklame store"
+    if sheet_name == "Reklame store":
+        r3 = rows[2] if len(rows) > 2 else []
+        r4 = rows[3] if len(rows) > 3 else []
+        
+        # Forward fill groups in r3
+        r3_filled = []
+        current = None
+        for val in r3:
+            if val is not None and str(val).strip() != "":
+                current = str(val).strip()
+            r3_filled.append(current)
+            
+        headers = []
+        for i in range(len(r3)):
+            g = r3_filled[i]
+            b = str(r4[i]).strip() if r4[i] is not None else ""
+            if g and b:
+                headers.append(f"{g} - {b}")
+            elif g:
+                headers.append(g)
+            elif b:
+                headers.append(b)
+            else:
+                headers.append(f"Col_{i}")
+                
+        data_rows = rows[4:] if len(rows) > 4 else []
+        df = pd.DataFrame(data_rows, columns=headers)
+        # Drop completely empty columns
+        df = df.dropna(how="all", axis=1)
+        # Drop row if ID is null/empty
+        id_col = next((c for c in df.columns if "ID" in c or "id" in c.lower()), None)
+        if id_col:
+            df = df[df[id_col].notna() & (df[id_col].astype(str).str.strip() != "")]
+            
+    # Custom parser for "Fixture principle"
+    elif sheet_name == "Fixture principle":
+        r2 = rows[1] if len(rows) > 1 else []
+        r3 = rows[2] if len(rows) > 2 else []
+        
+        # Forward fill groups in r2
+        r2_filled = []
+        current = None
+        for val in r2:
+            if val is not None and str(val).strip() != "":
+                current = str(val).strip()
+            r2_filled.append(current)
+            
+        headers = []
+        for i in range(len(r2)):
+            g = r2_filled[i]
+            b = str(r3[i]).strip() if r3[i] is not None else ""
+            if g and b:
+                headers.append(f"{g} - {b}")
+            elif g:
+                headers.append(g)
+            elif b:
+                headers.append(b)
+            else:
+                headers.append(f"Col_{i}")
+                
+        data_rows = rows[4:] if len(rows) > 4 else []  # Skip row 4 (totals row)
+        df = pd.DataFrame(data_rows, columns=headers)
+        # Drop completely empty columns
+        df = df.dropna(how="all", axis=1)
+        # Drop row if ID is null/empty
+        id_col = next((c for c in df.columns if "ID" in c or "id" in c.lower()), None)
+        if id_col:
+            df = df[df[id_col].notna() & (df[id_col].astype(str).str.strip() != "")]
+            
+    # Standard parser for other sheets
+    else:
+        xlsx_file = io.BytesIO(xlsx_data)
+        df = pd.read_excel(xlsx_file, sheet_name=sheet_name, header=0, dtype=str)
+        df = df.dropna(how="all")
+        
+    # Drop columns that are completely empty / Unnamed
+    df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
+    df = df.loc[:, df.columns.astype(str).str.strip() != "."]
+    
     # Normalize column names: collapse spaces and ensure uniqueness
     seen = {}
     new_cols = []
@@ -102,6 +191,8 @@ def load_erablue() -> pd.DataFrame:
 
 def refresh():
     """Clear all cached data – next access will re-fetch from Google Sheets."""
+    global _XLSX_BYTES
+    _XLSX_BYTES = None
     st.cache_data.clear()
 
 

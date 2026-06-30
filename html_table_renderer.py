@@ -25,6 +25,8 @@ COLUMN_GROUPS = [
             "Tỉnh/Thành phố", "Tỉnh/Thành phố (Rút gọn)", "Khu vực",
             "AM", "RSM / Khu vực", "Ghi chú & Ngoại lệ",
             "Trưng bày đặc biệt", "Kích thước Cửa hàng", "Ngày Setup", "ƯỚC TÍNH GO",
+            "ID store", "Store ID", "Store Name", "Size reklame", "Size",
+            "Total Brand", "Total Brand/Store",
         ],
     },
     {
@@ -174,6 +176,47 @@ COLUMN_GROUPS = [
             "Showroom", "Tổng diện tích", "Đất trống",
         ],
     },
+    {
+        "label": "REKLAME", "emoji": "🖼️",
+        "color": "#b45309", "text": "#ffffff",
+        "cols": [
+            "REKLAME - Oppo", "REKLAME - TCL", "REKLAME - Polytron",
+            "REKLAME - Midea", "REKLAME - Indodana", "REKLAME - Asus",
+        ],
+    },
+    {
+        "label": "Pole Sign", "emoji": "🚩",
+        "color": "#047857", "text": "#ffffff",
+        "cols": [
+            "Pole Sign - Oppo", "Pole Sign - Midea", "Pole Sign - Lenovo",
+            "POLE SIGN - OPPO", "POLE SIGN - MIDEA", "POLE SIGN - LENOVO",
+        ],
+    },
+    {
+        "label": "BILLBOARD", "emoji": "🖼️",
+        "color": "#0369a1", "text": "#ffffff",
+        "cols": [
+            "BILLBOARD - EBE", "BILLBOARD - Sharp", "BILLBOARD - TCL",
+            "BILLBOARD - POLYTRON", "BILLBOARD - OPPO", "BILLBOARD - ASUS",
+            "BILLBOARD - SPAYLATER", "BILLBOARD - INDODANA", "BILLBOARD - MIDEA",
+        ],
+    },
+    {
+        "label": "IMAGE STORE", "emoji": "📸",
+        "color": "#6d28d9", "text": "#ffffff",
+        "cols": [
+            "IMAGE STORE - TCL", "IMAGE STORE - OPPO",
+        ],
+    },
+    {
+        "label": "Vận Hành & Chi Phí", "emoji": "💰",
+        "color": "#374151", "text": "#ffffff",
+        "cols": [
+            "Time setup", "Time Setup", "END OF", "End of Period",
+            "REMARK", "Remarks", "Cost to Goverment",
+            "Permit - Admin", "Permit - Coordination", "Coordination",
+        ],
+    },
 ]
 
 FROZEN_COLS = ["ID Cửa hàng", "Tên Cửa hàng", "Tỉnh/Thành phố (Rút gọn)"]
@@ -199,12 +242,18 @@ GROUP_TRANSLATIONS = {
     "SDA": "SDA",
     "Poster Tường": "Poster Wall",
     "Bàn & Mặt Tiền & Diện Tích": "Table & Facade & Area",
+    "REKLAME": "REKLAME",
+    "Pole Sign": "Pole Sign",
+    "BILLBOARD": "BILLBOARD",
+    "IMAGE STORE": "IMAGE STORE",
+    "Vận Hành & Chi Phí": "Operations & Costs",
 }
 
 COLUMN_TRANSLATIONS = {
     "ID Cửa hàng": "Store ID",
     "ID Store": "Store ID",
     "Store ID": "Store ID",
+    "ID store": "Store ID",
     "Tên Cửa hàng": "Store Name",
     "Shop Name": "Store Name",
     "Store Name": "Store Name",
@@ -212,6 +261,7 @@ COLUMN_TRANSLATIONS = {
     "Province (Short)": "Province (Short)",
     "Kích thước Cửa hàng": "Store Size",
     "Size": "Size",
+    "Size reklame": "Reklame Size",
     "Khu vực": "Region",
     "Region": "Region",
     "Quận/Huyện": "District",
@@ -235,6 +285,18 @@ COLUMN_TRANSLATIONS = {
     "GHI CHÚ": "Notes",
     "Kệ": "SDA Shelves",
     "Tường.3": "SDA Wall",
+    "Total Brand": "Total Brands",
+    "Total Brand/Store": "Total Brands/Store",
+    "Time setup": "Setup Time",
+    "Time Setup": "Setup Time",
+    "END OF": "End of Period",
+    "End of Period": "End of Period",
+    "REMARK": "Remarks",
+    "Remarks": "Remarks",
+    "Cost to Goverment": "Government Cost",
+    "Permit - Admin": "Permit - Admin",
+    "Permit - Coordination": "Permit - Coordination",
+    "Coordination": "Coordination",
 }
 
 
