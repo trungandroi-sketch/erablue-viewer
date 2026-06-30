@@ -3,8 +3,20 @@ ai_engine.py – Natural language query engine for Erablue Viewer.
 Works directly with pandas DataFrames using actual Vietnamese Google Sheet column names.
 """
 from __future__ import annotations
+import logging
+import os
 import re
+
 import pandas as pd
+import streamlit as st
+
+LOC_KEYWORDS = [
+    "banten", "tangerang", "jakarta", "depok", "bekasi",
+    "bogor", "karawang", "bandung", "garut", "subang",
+    "ciledug", "jawa", "jkr", "jbr", "cikarang",
+    "jawa barat", "jawa tengah", "jawa timur", "yogyakarta",
+    "dki jakarta", "tây java", "trung java", "đông java"
+]
 
 # ─── Normalize column name (collapse whitespace/newlines) ────────────────────
 def _n(col: str) -> str:
@@ -79,6 +91,15 @@ ID_COL = "ID Cửa hàng"
 NAME_COL = "Tên Cửa hàng"
 PROV_COL = "Tỉnh/Thành phố (Rút gọn)"
 SIZE_COL = "Kích thước Cửa hàng"
+
+# Location keywords for filtering
+LOC_KEYWORDS = [
+    "banten", "tangerang", "jakarta", "depok", "bekasi",
+    "bogor", "karawang", "bandung", "garut", "subang",
+    "ciledug", "jawa", "jkr", "jbr", "cikarang",
+    "jawa barat", "jawa tengah", "jawa timur", "yogyakarta",
+    "dki jakarta", "tây java", "trung java", "đông java",
+]
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -194,13 +215,7 @@ def _apply_query_filters(q: str, df: pd.DataFrame) -> tuple[pd.DataFrame, list[s
             filters_applied.append(f"Size: **{size_val}**")
             
     # 2. Location filter
-    loc_kw = [
-        "banten", "tangerang", "jakarta", "depok", "bekasi",
-        "bogor", "karawang", "bandung", "garut", "subang",
-        "ciledug", "jawa", "jkr", "jbr", "cikarang",
-        "jawa barat", "jawa tengah", "jawa timur", "yogyakarta",
-        "dki jakarta", "tây java", "trung java", "đông java"
-    ]
+    loc_kw = LOC_KEYWORDS
     
     found_locs = []
     for loc in loc_kw:
@@ -334,6 +349,7 @@ def _render_single_store_view(df_filtered: pd.DataFrame, col_name: str, kind_des
     try:
         is_positive = float(val) > 0
     except Exception:
+        logging.exception("Failed to convert value to float in _render_single_store_view")
         is_positive = pd.notna(val) and str(val).strip() not in ["", "-", "0", "0.0"]
         
     status_emoji = "✅ CÓ" if is_positive else "❌ KHÔNG"
@@ -393,7 +409,7 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
         return "⚠️ No data available to analyze." if lang == "en" else "⚠️ Không có dữ liệu để phân tích."
 
     # 1. Apply high-precision filters first (Store ID, Size, Location)
-    import streamlit as st
+
     
     # Search for store ID in current query or history
     all_text = q
@@ -430,13 +446,13 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
         filter_header = f"> 📌 **Filter applied**: {', '.join(filters_applied)}\n>\n" if lang == "en" else f"> 📌 **Bộ lọc tự động áp dụng**: {', '.join(filters_applied)}\n>\n"
 
     # 2. Try Google Gemini API with conversational context
-    import os
+
     gemini_key = None
     try:
         if "GEMINI_API_KEY" in st.secrets:
             gemini_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
-        pass
+        logging.exception("Failed to read GEMINI_API_KEY from st.secrets")
         
     if not gemini_key:
         gemini_key = os.environ.get("GEMINI_API_KEY")
@@ -453,7 +469,7 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
                     if "generateContent" in m.supported_generation_methods:
                         available_models.append(m.name)
             except Exception:
-                pass
+                logging.exception("Failed to list Gemini models")
                 
             model_name = "gemini-2.5-flash"
             if available_models:
@@ -562,7 +578,6 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
                 
                 return f"{header_text}\n{filter_header}{response.text}{footer_text}"
         except Exception as e:
-            import logging
             logging.exception(f"Gemini API error: {e}")
             st.info("⚠️ AI tạm thời không khả dụng. Hệ thống tự động chuyển sang phân tích cục bộ.")
             pass
@@ -622,12 +637,7 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
 """
 
     # ── 2. Location queries ─────────────────────────────────────────────────
-    loc_kw = [
-        "banten", "tangerang", "jakarta", "depok", "bekasi",
-        "bogor", "karawang", "bandung", "garut", "subang",
-        "ciledug", "jawa", "jkr", "jbr", "cikarang",
-    ]
-    for loc in loc_kw:
+    for loc in LOC_KEYWORDS:
         if loc in q and not any(w in q for w in ["tất cả", "hãng", "brand", "tổng", "khu vực", "phân bổ", "độ phủ", "laptop", "tv", "tivi", "ac", "máy lạnh", "tủ lạnh", "máy giặt"]):
             masks = []
             for col_norm in LOCATION_COLS_NORM:

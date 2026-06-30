@@ -5,11 +5,24 @@ Reads live data directly from Google Sheets. No local database required.
 import io
 import datetime
 import html as _html
+import logging
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
+
+
+def search_df(df: pd.DataFrame, query: str, cols: list[str] | None = None) -> pd.DataFrame:
+    """Filter DataFrame rows where any of the specified columns contain the query string."""
+    if not query:
+        return df
+    mask = pd.Series([False] * len(df), index=df.index)
+    search_cols = cols if cols else list(df.columns[:3])
+    for col in search_cols:
+        if col in df.columns:
+            mask |= df[col].astype(str).str.lower().str.contains(query.lower(), na=False)
+    return df[mask]
 
 @st.cache_data(show_spinner=False)
 def convert_df_to_excel(df: pd.DataFrame) -> bytes:
@@ -421,7 +434,8 @@ with st.sidebar:
             f'<div style="font-size:10px;color:#64748b;margin-top:4px;">{ts}</div>',
             unsafe_allow_html=True,
         )
-    except Exception:
+    except Exception as e:
+        logging.exception(f"Sidebar status display error: {e}")
         st.markdown(f'<div class="data-badge data-badge-warn">{T[lang]["offline_status"]}</div>',
                     unsafe_allow_html=True)
 
@@ -749,11 +763,7 @@ elif menu == "viewer":
     # Apply filters
     filtered = df_view.copy()
     if search:
-        mask = pd.Series([False] * len(filtered), index=filtered.index)
-        for col in ["ID Cửa hàng", "Tên Cửa hàng", "ID Store", "Shop Name", "Store ID", "ID store", "ID STORE", "Tên cửa hàng", "Shop name"]:
-            if col in filtered.columns:
-                mask |= filtered[col].astype(str).str.lower().str.contains(search.lower(), na=False)
-        filtered = filtered[mask]
+        filtered = search_df(filtered, search, ["ID Cửa hàng", "Tên Cửa hàng", "ID Store", "Shop Name", "Store ID", "ID store", "ID STORE", "Tên cửa hàng", "Shop name"])
         
     if area_filter not in ["Tất cả", "All"]:
         if "Khu vực" in filtered.columns:
@@ -768,136 +778,75 @@ elif menu == "viewer":
             filtered = filtered[filtered["Province/City Simplified"] == prov_filter]
 
     # Partitions block
-    if lang == "vi":
-        PARTITIONS = {
-            "🌐 Tất cả cột": None,
-            "📊 Tổng công suất": [
-                "Còn lại Bàn", "Tường",
-                "Tài nguyên Layout Bàn", "Tường.1",
-                "Tài nguyên Thực tế Bàn", "Tường.2",
-            ],
-            "📱 ICT – Bàn & Vách (tất cả hãng)": [
-                "Samsung Bàn Demo", "Tủ Tường Thương hiệu",
-                "Apple 1.2m Bàn Demo", "Tủ Tường Thương hiệu.1",
-                "OPPO Bàn Demo", "Tủ Tường Thương hiệu.2",
-                "Xiaomi Bàn Demo", "Tủ Tường Thương hiệu.3",
-                "Vivo Bàn Demo", "Tủ Tường Thương hiệu.4",
-                "Realme Bàn Demo", "Tủ Tường Thương hiệu.5",
-                "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix )",
-                "GHI CHÚ",
-            ],
-            "⚡ Tài Nguyên Erablue Electronics": [
-                "Tài nguyên cho Erablue Electronics TV Treo tường",
-                "TV Bàn", "Tủ đông", "Nền Tủ lạnh", "Tủ lạnh Tường",
-                "Nền Máy giặt", "Nền Máy sấy", "Nền Máy rửa chén",
-                "KỆ MÁY GIẶT", "Máy giặt Tường", "Máy lạnh Tường",
-                "RIG", "Máy nước nóng Tường",
-            ],
-            "📺 TV Treo Tường (Vị Trí Ưu Tiên)": [
-                "TV Treo tường (Vị trí ưu tiên) Vị trí Sony", "Sony (m)",
-                "Vị trí Samsung", "Samsung (m)",
-                "Vị trí Polytron", "Polytron",
-                "Vị trí Sharp", "Sharp",
-                "Vị trí Toshiba", "Toshiba",
-                "Vị trí TCL", "TCL",
-            ],
-            "📺 TV Đảo (Island TV)": [
-                "TV Đảo (Nguyên tắc) (/Kệ) Samsung",
-                "Sharp .1", "Sony", "Polytron .1", "Toshiba .1", "TCL .1",
-            ],
-            "❌️ Máy Lạnh & Tủ Lạnh Hãng": [
-                "Máy lạnh Treo tường (SL) Panasonic",
-                "Daikin", "LG", "Samsung",
-                "Polytron .2", "Sharp .2", "Midea", "Gree",
-                "Aqua", "TCL .2", "Electrolux",
-                "Tủ lạnh Treo tường (/Kệ) Midea",
-                "TCL .3", "Aqua .1", "Polytron .3", "Sharp .3", "Toshiba .2",
-            ],
-            "🦺 WM Đảo & SDA": [
-                "MÁY GIẶT ĐẢO Midea",
-                "TCL .4", "Aqua .2", "Polytron .4", "Sharp .4", "Toshiba .3",
-                "TV đầu tiên của dòng", "Kệ SDA đầu tiên",
-                "SDA MIYAKO (TƯỜNG)", "MIYAKO (ENDCAP)",
-                "PHILIPS (TƯỜNG)", "PHILIPS (ENDCAP)",
-                "ELECTROLUX (TƯỜNG)", "ELECTROLUX (ENDCAP)",
-                "MIDEA (TƯỜNG)", "MIDEA (ENDCAP)", "Kệ", "Tường.3",
-            ],
-            "🖼️ Poster & Mặt Tiền & Diện Tích": [
-                "TỔNG POSTER TƯỜNG SỬ DỤNG", "CÒN LẠI",
-                "POSTER TƯỜNG Thuê theo Thương hiệu",
-                "Samsung.1", "Aqua.1", "Polytron.1", "LG.1", "Elux", "Sharp.1",
-                "Logo Erablue", "Logo Erafone",
-                "Mặt tiền Chính (C)", "Khác (R)", "Khác (L)",
-                "Diện tích (m2) Kho Điện máy",
-                "WC + Phòng Nhân viên", "Kho + Server", "Bãi đậu xe",
-                "Showroom", "Tổng diện tích", "Đất trống",
-            ],
-        }
-    else:
-        PARTITIONS = {
-            "🌐 All Columns": None,
-            "📊 Total Capacity": [
-                "Còn lại Bàn", "Tường",
-                "Tài nguyên Layout Bàn", "Tường.1",
-                "Tài nguyên Thực tế Bàn", "Tường.2",
-            ],
-            "📱 ICT – Table & Wall (All brands)": [
-                "Samsung Bàn Demo", "Tủ Tường Thương hiệu",
-                "Apple 1.2m Bàn Demo", "Tủ Tường Thương hiệu.1",
-                "OPPO Bàn Demo", "Tủ Tường Thương hiệu.2",
-                "Xiaomi Bàn Demo", "Tủ Tường Thương hiệu.3",
-                "Vivo Bàn Demo", "Tủ Tường Thương hiệu.4",
-                "Realme Bàn Demo", "Tủ Tường Thương hiệu.5",
-                "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix )",
-                "GHI CHÚ",
-            ],
-            "⚡ Erablue Electronics Resources": [
-                "Tài nguyên cho Erablue Electronics TV Treo tường",
-                "TV Bàn", "Tủ đông", "Nền Tủ lạnh", "Tủ lạnh Tường",
-                "Nền Máy giặt", "Nền Máy sấy", "Nền Máy rửa chén",
-                "KỆ MÁY GIẶT", "Máy giặt Tường", "Máy lạnh Tường",
-                "RIG", "Máy nước nóng Tường",
-            ],
-            "📺 Brand TV – Wall (Priority Loc)": [
-                "TV Treo tường (Vị trí ưu tiên) Vị trí Sony", "Sony (m)",
-                "Vị trí Samsung", "Samsung (m)",
-                "Vị trí Polytron", "Polytron",
-                "Vị trí Sharp", "Sharp",
-                "Vị trí Toshiba", "Toshiba",
-                "Vị trí TCL", "TCL",
-            ],
-            "📺 Island TV": [
-                "TV Đảo (Nguyên tắc) (/Kệ) Samsung",
-                "Sharp .1", "Sony", "Polytron .1", "Toshiba .1", "TCL .1",
-            ],
-            "❌️ AC & Fridge by Brand": [
-                "Máy lạnh Treo tường (SL) Panasonic",
-                "Daikin", "LG", "Samsung",
-                "Polytron .2", "Sharp .2", "Midea", "Gree",
-                "Aqua", "TCL .2", "Electrolux",
-                "Tủ lạnh Treo tường (/Kệ) Midea",
-                "TCL .3", "Aqua .1", "Polytron .3", "Sharp .3", "Toshiba .2",
-            ],
-            "🦺 WM Island & SDA": [
-                "MÁY GIẶT ĐẢO Midea",
-                "TCL .4", "Aqua .2", "Polytron .4", "Sharp .4", "Toshiba .3",
-                "TV đầu tiên của dòng", "Kệ SDA đầu tiên",
-                "SDA MIYAKO (TƯỜNG)", "MIYAKO (ENDCAP)",
-                "PHILIPS (TƯỜNG)", "PHILIPS (ENDCAP)",
-                "ELECTROLUX (TƯỜNG)", "ELECTROLUX (ENDCAP)",
-                "MIDEA (TƯỜNG)", "MIDEA (ENDCAP)", "Kệ", "Tường.3",
-            ],
-            "🖼️ Poster & Facade & Area": [
-                "TỔNG POSTER TƯỜNG SỬ DỤNG", "CÒN LẠI",
-                "POSTER TƯỜNG Thuê theo Thương hiệu",
-                "Samsung.1", "Aqua.1", "Polytron.1", "LG.1", "Elux", "Sharp.1",
-                "Logo Erablue", "Logo Erafone",
-                "Mặt tiền Chính (C)", "Khác (R)", "Khác (L)",
-                "Diện tích (m2) Kho Điện máy",
-                "WC + Phòng Nhân viên", "Kho + Server", "Bãi đậu xe",
-                "Showroom", "Tổng diện tích", "Đất trống",
-            ],
-        }
+    # Partitions block - column lists defined once, labels vary by language
+    _PARTITION_DEFS = [
+        ("all", "🌐 Tất cả cột", "🌐 All Columns", None),
+        ("capacity", "📊 Tổng công suất", "📊 Total Capacity", [
+            "Còn lại Bàn", "Tường",
+            "Tài nguyên Layout Bàn", "Tường.1",
+            "Tài nguyên Thực tế Bàn", "Tường.2",
+        ]),
+        ("ict", "📱 ICT – Bàn & Vách (tất cả hãng)", "📱 ICT – Table & Wall (All brands)", [
+            "Samsung Bàn Demo", "Tủ Tường Thương hiệu",
+            "Apple 1.2m Bàn Demo", "Tủ Tường Thương hiệu.1",
+            "OPPO Bàn Demo", "Tủ Tường Thương hiệu.2",
+            "Xiaomi Bàn Demo", "Tủ Tường Thương hiệu.3",
+            "Vivo Bàn Demo", "Tủ Tường Thương hiệu.4",
+            "Realme Bàn Demo", "Tủ Tường Thương hiệu.5",
+            "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix )",
+            "GHI CHÚ",
+        ]),
+        ("erablue", "⚡ Tài Nguyên Erablue Electronics", "⚡ Erablue Electronics Resources", [
+            "Tài nguyên cho Erablue Electronics TV Treo tường",
+            "TV Bàn", "Tủ đông", "Nền Tủ lạnh", "Tủ lạnh Tường",
+            "Nền Máy giặt", "Nền Máy sấy", "Nền Máy rửa chén",
+            "KỆ MÁY GIẶT", "Máy giặt Tường", "Máy lạnh Tường",
+            "RIG", "Máy nước nóng Tường",
+        ]),
+        ("tv_wall", "📺 TV Treo Tường (Vị Trí Ưu Tiên)", "📺 Brand TV – Wall (Priority Loc)", [
+            "TV Treo tường (Vị trí ưu tiên) Vị trí Sony", "Sony (m)",
+            "Vị trí Samsung", "Samsung (m)",
+            "Vị trí Polytron", "Polytron",
+            "Vị trí Sharp", "Sharp",
+            "Vị trí Toshiba", "Toshiba",
+            "Vị trí TCL", "TCL",
+        ]),
+        ("tv_island", "📺 TV Đảo (Island TV)", "📺 Island TV", [
+            "TV Đảo (Nguyên tắc) (/Kệ) Samsung",
+            "Sharp .1", "Sony", "Polytron .1", "Toshiba .1", "TCL .1",
+        ]),
+        ("ac_fridge", "❌️ Máy Lạnh & Tủ Lạnh Hãng", "❌️ AC & Fridge by Brand", [
+            "Máy lạnh Treo tường (SL) Panasonic",
+            "Daikin", "LG", "Samsung",
+            "Polytron .2", "Sharp .2", "Midea", "Gree",
+            "Aqua", "TCL .2", "Electrolux",
+            "Tủ lạnh Treo tường (/Kệ) Midea",
+            "TCL .3", "Aqua .1", "Polytron .3", "Sharp .3", "Toshiba .2",
+        ]),
+        ("wm_sda", "🦺 WM Đảo & SDA", "🦺 WM Island & SDA", [
+            "MÁY GIẶT ĐẢO Midea",
+            "TCL .4", "Aqua .2", "Polytron .4", "Sharp .4", "Toshiba .3",
+            "TV đầu tiên của dòng", "Kệ SDA đầu tiên",
+            "SDA MIYAKO (TƯỜNG)", "MIYAKO (ENDCAP)",
+            "PHILIPS (TƯỜNG)", "PHILIPS (ENDCAP)",
+            "ELECTROLUX (TƯỜNG)", "ELECTROLUX (ENDCAP)",
+            "MIDEA (TƯỜNG)", "MIDEA (ENDCAP)", "Kệ", "Tường.3",
+        ]),
+        ("poster", "🖼️ Poster & Mặt Tiền & Diện Tích", "🖼️ Poster & Facade & Area", [
+            "TỔNG POSTER TƯỜNG SỬ DỤNG", "CÒN LẠI",
+            "POSTER TƯỜNG Thuê theo Thương hiệu",
+            "Samsung.1", "Aqua.1", "Polytron.1", "LG.1", "Elux", "Sharp.1",
+            "Logo Erablue", "Logo Erafone",
+            "Mặt tiền Chính (C)", "Khác (R)", "Khác (L)",
+            "Diện tích (m2) Kho Điện máy",
+            "WC + Phòng Nhân viên", "Kho + Server", "Bãi đậu xe",
+            "Showroom", "Tổng diện tích", "Đất trống",
+        ]),
+    ]
+    PARTITIONS = {}
+    for _, vi_lbl, en_lbl, cols in _PARTITION_DEFS:
+        label = en_lbl if lang == "en" else vi_lbl
+        PARTITIONS[label] = cols
 
     if sheet_choice == "Erablue Existing":
         pcol1, pcol2 = st.columns([2, 1])
@@ -1002,10 +951,7 @@ elif menu == "reklame":
             with scol1:
                 search_rek = st.text_input(T[lang]["search_shop"], key="rek_search")
             if search_rek:
-                mask = pd.Series([False] * len(df_rek), index=df_rek.index)
-                for col in df_rek.columns[:3]:
-                    mask |= df_rek[col].astype(str).str.lower().str.contains(search_rek.lower(), na=False)
-                df_rek = df_rek[mask]
+                df_rek = search_df(df_rek, search_rek)
             with scol2:
                 st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
                 xlsx_rek = convert_df_to_excel(df_rek)
@@ -1034,10 +980,7 @@ elif menu == "reklame":
             with scol1:
                 search_fix = st.text_input(T[lang]["search_shop"], key="fix_search")
             if search_fix:
-                mask = pd.Series([False] * len(df_fix), index=df_fix.index)
-                for col in df_fix.columns[:3]:
-                    mask |= df_fix[col].astype(str).str.lower().str.contains(search_fix.lower(), na=False)
-                df_fix = df_fix[mask]
+                df_fix = search_df(df_fix, search_fix)
             with scol2:
                 st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
                 xlsx_fix = convert_df_to_excel(df_fix)
