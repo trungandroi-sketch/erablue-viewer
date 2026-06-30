@@ -15,7 +15,7 @@ import streamlit as st
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 SHEET_ID = "17FvQ8YaVVV4U158yhGM8hWFNDfI6czuL1wPCUDMteOU"
-CACHE_TTL = 86400  # seconds (24 hours)
+CACHE_TTL = 300  # seconds (5 minutes)
 
 SHEET_TABS = [
     "Erablue Existing",
