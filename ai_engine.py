@@ -129,11 +129,18 @@ def _tbl(rows: pd.DataFrame, n: int = 25) -> str:
 
 
 # ─── Filters Extractor ────────────────────────────────────────────────────────
+def _extract_unique_name(full_name: str) -> str:
+    if "." in full_name:
+        return full_name.split(".")[-1].strip()
+    if "_" in full_name:
+        return full_name.split("_")[-1].strip()
+    return full_name.strip()
+
 def _apply_query_filters(q: str, df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     df_filtered = df.copy()
     filters_applied = []
     
-    # 0. Store ID/Name filter
+    # 0. Store ID filter
     id_col = _find_col(df, ID_COL)
     if id_col:
         # Find all numbers in the query
@@ -146,6 +153,23 @@ def _apply_query_filters(q: str, df: pd.DataFrame) -> tuple[pd.DataFrame, list[s
                 name_str = f" ({match_rows.iloc[0][name_col]})" if name_col else ""
                 filters_applied.append(f"Cửa hàng ID: **{num}**{name_str}")
                 return df_filtered, filters_applied
+
+    # 0.1 Store Name filter
+    name_col = _find_col(df, NAME_COL)
+    if name_col:
+        store_names = df[name_col].dropna().astype(str).tolist()
+        store_names.sort(key=lambda x: len(_extract_unique_name(x)), reverse=True)
+        for name in store_names:
+            uniq = _extract_unique_name(name)
+            if len(uniq) > 3:
+                norm_uniq = re.sub(r'[^a-zA-Z0-9\s]', '', uniq.lower())
+                norm_q = re.sub(r'[^a-zA-Z0-9\s]', '', q)
+                if norm_uniq in norm_q:
+                    match_rows = df[df[name_col] == name]
+                    if not match_rows.empty:
+                        df_filtered = match_rows
+                        filters_applied.append(f"Cửa hàng Name: **{uniq}**" if "Việt" not in q else f"Tên cửa hàng: **{uniq}**")
+                        return df_filtered, filters_applied
 
     # 1. Size filter
     size_val = None
@@ -397,7 +421,7 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
                 
     # Apply other filters if no store ID matched
     if len(df_filtered) == total_original:
-        df_filtered, loc_size_filters = _apply_query_filters(q, df)
+        df_filtered, loc_size_filters = _apply_query_filters(all_text, df)
         filters_applied.extend(loc_size_filters)
 
     total = len(df_filtered)
@@ -686,13 +710,14 @@ _💡 Hỏi thêm: "Có mấy shop có bàn OPPO?" / "Shop nào ở Banten?"_
         "bàn": ["bàn", "table"],
         "vách": ["vách", "wall", "tường", "cabinet"],
         "tường": ["vách", "wall", "tường", "cabinet"],
-        "sân xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
-        "đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
-        "đỗ xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
-        "bãi xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
-        "bãi đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
-        "parkir": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
-        "area parkir": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir"],
+        "sân xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "đỗ xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "bãi xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "bãi đậu xe": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "parkir": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "parking": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
+        "area parkir": ["bãi đậu xe", "sân xe", "bãi xe", "đậu xe", "đỗ xe", "parkir", "parking"],
     }
     
     # Expand keywords using translations
