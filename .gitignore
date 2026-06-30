@@ -3,3 +3,6 @@ __pycache__/
 .streamlit/secrets.toml
 streamlit.log
 scratch/
+.env
+*.env
+.env.*

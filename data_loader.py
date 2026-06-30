@@ -4,6 +4,7 @@ Reads directly from the public Google Sheet using the gviz CSV endpoint.
 No API key required. Data is cached for 5 minutes (configurable).
 """
 import io
+import datetime
 import ssl
 import urllib.parse
 import urllib.request
@@ -24,10 +25,12 @@ SHEET_TABS = [
     "Fixture principle",
 ]
 
-# SSL context – bypasses macOS cert-bundle issue
-_SSL = ssl.create_default_context()
-_SSL.check_hostname = False
-_SSL.verify_mode = ssl.CERT_NONE
+# SSL context – use certifi certs if available, fallback to system defaults
+try:
+    import certifi
+    _SSL = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL = ssl.create_default_context()
 
 
 # ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -103,6 +106,5 @@ def refresh():
 
 
 def last_refresh_label() -> str:
-    import datetime
     now = datetime.datetime.now()
     return now.strftime("Cập nhật lúc %H:%M ngày %d/%m/%Y")

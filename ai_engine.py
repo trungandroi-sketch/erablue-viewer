@@ -562,7 +562,9 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
                 
                 return f"{header_text}\n{filter_header}{response.text}{footer_text}"
         except Exception as e:
-            st.warning(f"⚠️ Trợ lý AI (Gemini API) gặp lỗi hoặc chưa cấu hình key: {e}. Hệ thống tự động chuyển sang công cụ phân tích cục bộ.")
+            import logging
+            logging.exception(f"Gemini API error: {e}")
+            st.info("⚠️ AI tạm thời không khả dụng. Hệ thống tự động chuyển sang phân tích cục bộ.")
             pass
 
     # ── 0. High-precision brand-category resolver ───────────────────────────

@@ -4,6 +4,7 @@ Reads live data directly from Google Sheets. No local database required.
 """
 import io
 import datetime
+import html as _html
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -662,10 +663,12 @@ if menu == "dashboard":
             )
             rows_html = []
             for _, r in by_prov.iterrows():
+                prov_safe = _html.escape(str(r[prov_col]))
+                count_safe = _html.escape(str(r["count"]))
                 rows_html.append(
                     f'<tr style="border-bottom:1px solid #f1f5f9; color:#334155;">'
-                    f'  <td style="padding:10px 0; font-weight:500;">{r[prov_col]}</td>'
-                    f'  <td style="padding:10px 0; text-align:right; font-weight:600; color:#ea580c;">{r["count"]}</td>'
+                    f'  <td style="padding:10px 0; font-weight:500;">{prov_safe}</td>'
+                    f'  <td style="padding:10px 0; text-align:right; font-weight:600; color:#ea580c;">{count_safe}</td>'
                     f'</tr>'
                 )
             rows_str = "\n".join(rows_html)
