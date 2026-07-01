@@ -526,8 +526,11 @@ if menu == "dashboard":
         
         valid_mask = go_series.notna() & (go_series.dt.year > 1900)
         
-        # Sắp khai trương: GO date in the future
-        upcoming_mask = valid_mask & (go_series.dt.date > today)
+        # Sắp khai trương: GO date in the future months (after current month/year)
+        upcoming_mask = valid_mask & (
+            (go_series.dt.year > today.year) |
+            ((go_series.dt.year == today.year) & (go_series.dt.month > today.month))
+        )
         n_upcoming = int(upcoming_mask.sum())
         
         # Khai trương trong tháng: GO date in current month/year
@@ -579,17 +582,23 @@ if menu == "dashboard":
     c1_2, c2_2, c3_2 = st.columns(3)
     
     today = datetime.date.today()
+    upcoming_val = n_upcoming if n_upcoming > 0 else (
+        "Đang cập nhật" if lang == "vi" else "Updating"
+    )
     kpis_row2 = [
         (c1_2, T[lang]["kpi_opened"], n_opened, T[lang]["kpi_opened_desc"], "#16a34a"),
         (c2_2, T[lang]["kpi_this_month"], n_this_month, T[lang]["kpi_this_month_desc"].format(month=today.month, year=today.year), "#ea580c"),
-        (c3_2, T[lang]["kpi_upcoming"], n_upcoming, T[lang]["kpi_upcoming_desc"], "#2563eb"),
+        (c3_2, T[lang]["kpi_upcoming"], upcoming_val, T[lang]["kpi_upcoming_desc"], "#2563eb"),
     ]
     for col, label, val, sub, color in kpis_row2:
+        val_str = str(val)
+        # If the value is a text string (not a simple number), use a smaller font size to fit well
+        font_size = "1.5rem" if any(c.isalpha() for c in val_str) else "2rem"
         with col:
             st.markdown(
                 f'<div class="kpi-card" style="border-left-color:{color}; padding: 16px 20px;">'
                 f'<div class="kpi-label">{label}</div>'
-                f'<div class="kpi-value" style="font-size:2rem;color:{color};">{val}</div>'
+                f'<div class="kpi-value" style="font-size:{font_size};color:{color};">{val}</div>'
                 f'<div class="kpi-sub">{sub}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
