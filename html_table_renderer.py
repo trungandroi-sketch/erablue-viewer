@@ -6,6 +6,7 @@ html_table_renderer.py – Renders a DataFrame as a premium HTML table with:
 
 Column names match the actual Vietnamese Google Sheet headers.
 """
+import datetime
 import html as _html
 import pandas as pd
 
@@ -219,8 +220,16 @@ COLUMN_GROUPS = [
     },
 ]
 
-FROZEN_COLS = ["ID Cửa hàng", "Tên Cửa hàng", "Tỉnh/Thành phố (Rút gọn)"]
-FROZEN_WIDTHS = {"ID Cửa hàng": 108, "Tên Cửa hàng": 240, "Tỉnh/Thành phố (Rút gọn)": 140}
+FROZEN_COLS = [
+    "ID Cửa hàng", "ID Store", "Store ID", "id store", "ID store",
+    "Tên Cửa hàng", "Tên cửa hàng", "Store Name", "Store name",
+    "Tỉnh/Thành phố (Rút gọn)", "Province (Short)"
+]
+FROZEN_WIDTHS = {
+    "ID Cửa hàng": 108, "ID Store": 108, "Store ID": 108, "id store": 108, "ID store": 108,
+    "Tên Cửa hàng": 240, "Tên cửa hàng": 240, "Store Name": 240, "Store name": 240,
+    "Tỉnh/Thành phố (Rút gọn)": 140, "Province (Short)": 140
+}
 
 _FALLBACK_GROUP = {"label": "Khác", "emoji": "📄", "color": "#374151", "text": "#ffffff"}
 
@@ -352,18 +361,33 @@ def _short(col: str) -> str:
     return nc
 
 
-def _fmt(val) -> tuple[str, str]:
+def _fmt(val, col_name: str | None = None) -> tuple[str, str]:
     """Return (display_string, css_class). cls: 'p'=positive, 'z'=zero, ''=text."""
     try:
         if pd.isna(val):
             return "", "z"
+            
+        if isinstance(val, (datetime.date, datetime.datetime, pd.Timestamp)):
+            return str(val), ""
+            
         f = float(val)
         if f == 0:
             return "", "z"
+            
+        is_id_or_date = col_name and any(kw in col_name.lower() for kw in ["id", "date", "ngày", "time", "period"])
+        
         if f > 0:
-            s = str(int(f)) if f == int(f) else f"{f:.1f}"
+            if is_id_or_date:
+                s = str(int(f)) if f == int(f) else f"{f:.1f}"
+            else:
+                s = f"{int(f):,}" if f == int(f) else f"{f:,.1f}"
             return s, "p"
-        return str(f), ""
+            
+        if is_id_or_date:
+            s = str(int(f)) if f == int(f) else str(f)
+        else:
+            s = f"{int(f):,}" if f == int(f) else f"{f:,.1f}"
+        return s, ""
     except (TypeError, ValueError):
         sv = "" if pd.isna(val) else str(val).strip()
         return sv, ""
@@ -482,7 +506,7 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
         )
         for c in all_cols:
             val = row[c]
-            disp, cls = _fmt(val)
+            disp, cls = _fmt(val, c)
             if c in frozen_present:
                 lft = offsets[c]
                 w = FROZEN_WIDTHS.get(c, 150)
@@ -509,19 +533,21 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
 
     # ── Summary row ───────────────────────────────────────────────────────
     sum_cells = ""
+    first_frozen = frozen_present[0] if len(frozen_present) > 0 else None
+    second_frozen = frozen_present[1] if len(frozen_present) > 1 else None
     for c in all_cols:
-        if c == FROZEN_COLS[0] if FROZEN_COLS else None:
+        if c == first_frozen:
             lft = offsets[c]
-            w = FROZEN_WIDTHS[c]
+            w = FROZEN_WIDTHS.get(c, 108)
             total_lbl = "∑ TOTAL" if lang == "en" else "∑ TỔNG"
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
                 f'background:#0a1f44;color:#60a5fa;font-weight:700;padding:6px 10px;'
                 f'text-align:left;border-top:2px solid #3b82f6;">{total_lbl}</td>'
             )
-        elif len(frozen_present) > 1 and c == FROZEN_COLS[1]:
+        elif c == second_frozen:
             lft = offsets[c]
-            w = FROZEN_WIDTHS[c]
+            w = FROZEN_WIDTHS.get(c, 240)
             store_count_lbl = f"{len(df)} stores" if lang == "en" else f"{len(df)} cửa hàng"
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
@@ -541,7 +567,7 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
                 tot = num.sum()
                 cnt = int((num > 0).sum())
                 if cnt > 0:
-                    ts = str(int(tot)) if tot == int(tot) else f"{tot:.1f}"
+                    ts = f"{int(tot):,}" if tot == int(tot) else f"{tot:,.1f}"
                     sum_cells += (
                         f'<td style="background:#1e3a5f;color:#93c5fd;font-weight:700;'
                         f'font-size:10px;text-align:center;padding:4px 6px;'

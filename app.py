@@ -948,65 +948,33 @@ elif menu == "reklame":
     </div>
     """, unsafe_allow_html=True)
 
-    tab1, tab2 = st.tabs([T[lang]["tab_rek"], T[lang]["tab_fix"]])
-
-    with tab1:
-        with st.spinner(T[lang]["loading_sheet"].format(sheet="Reklame store")):
-            try:
-                df_rek = load_sheet("Reklame store")
-            except Exception as e:
-                st.error(str(e))
-                df_rek = pd.DataFrame()
-        if not df_rek.empty:
-            scol1, scol2 = st.columns([3, 1])
-            with scol1:
-                search_rek = st.text_input(T[lang]["search_shop"], key="rek_search")
-            if search_rek:
-                df_rek = search_df(df_rek, search_rek)
-            with scol2:
-                st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
-                xlsx_rek = convert_df_to_excel(df_rek)
-                st.download_button(
-                    label=T[lang]["export_btn"],
-                    data=xlsx_rek,
-                    file_name=f"Reklame_store_export_{datetime.date.today()}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="rek_export_btn",
-                    use_container_width=True
-                )
-            html_rek = render_sticky_table(df_rek, max_height=700)
-            components.html(html_rek, height=750, scrolling=False)
-        else:
-            st.warning(T[lang]["no_rek"])
-
-    with tab2:
-        with st.spinner(T[lang]["loading_sheet"].format(sheet="Fixture principle")):
-            try:
-                df_fix = load_sheet("Fixture principle")
-            except Exception as e:
-                st.error(str(e))
-                df_fix = pd.DataFrame()
-        if not df_fix.empty:
-            scol1, scol2 = st.columns([3, 1])
-            with scol1:
-                search_fix = st.text_input(T[lang]["search_shop"], key="fix_search")
-            if search_fix:
-                df_fix = search_df(df_fix, search_fix)
-            with scol2:
-                st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
-                xlsx_fix = convert_df_to_excel(df_fix)
-                st.download_button(
-                    label=T[lang]["export_btn"],
-                    data=xlsx_fix,
-                    file_name=f"Fixture_principle_export_{datetime.date.today()}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key="fix_export_btn",
-                    use_container_width=True
-                )
-            html_fix = render_sticky_table(df_fix, max_height=700)
-            components.html(html_fix, height=750, scrolling=False)
-        else:
-            st.warning(T[lang]["no_fix"])
+    with st.spinner(T[lang]["loading_sheet"].format(sheet="Fixture principle")):
+        try:
+            df_fix = load_sheet("Fixture principle")
+        except Exception as e:
+            st.error(str(e))
+            df_fix = pd.DataFrame()
+    if not df_fix.empty:
+        scol1, scol2 = st.columns([3, 1])
+        with scol1:
+            search_fix = st.text_input(T[lang]["search_shop"], key="fix_search")
+        if search_fix:
+            df_fix = search_df(df_fix, search_fix)
+        with scol2:
+            st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
+            xlsx_fix = convert_df_to_excel(df_fix)
+            st.download_button(
+                label=T[lang]["export_btn"],
+                data=xlsx_fix,
+                file_name=f"Fixture_principle_export_{datetime.date.today()}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="fix_export_btn",
+                use_container_width=True
+            )
+        html_fix = render_sticky_table(df_fix, max_height=700)
+        components.html(html_fix, height=750, scrolling=False)
+    else:
+        st.warning(T[lang]["no_fix"])
 
     st.markdown("</div>", unsafe_allow_html=True)
 

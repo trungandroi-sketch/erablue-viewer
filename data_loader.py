@@ -22,7 +22,6 @@ SHEET_TABS = [
     "Sellout Fixture",
     "Banner",
     "2 lantai",
-    "Reklame store",
     "Fixture principle",
 ]
 
