@@ -807,6 +807,12 @@ elif menu == "viewer":
             "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix )",
             "GHI CHÚ",
         ]),
+        ("acc_laptop", "💻 Khu Vực Phụ Kiện & Laptop", "💻 Accessories & Laptop Zone", [
+            "Tủ Điện thoại Điện thoại", "Máy tính bảng",
+            "LAPTOP PRINCIPLE HP", "INTEL", "ACER", "ASUS", "LENOVO",
+            "Laptop Bàn Laptop", "Tủ Laptop",
+            "Phụ kiện Tường", "Fixture (Sàn)", "CCTV + Loa",
+        ]),
         ("erablue", "⚡ Tài Nguyên Erablue Electronics", "⚡ Erablue Electronics Resources", [
             "Tài nguyên cho Erablue Electronics TV Treo tường",
             "TV Bàn", "Tủ đông", "Nền Tủ lạnh", "Tủ lạnh Tường",

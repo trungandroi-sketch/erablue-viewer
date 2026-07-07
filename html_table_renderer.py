@@ -585,8 +585,10 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
 <meta charset="utf-8">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  *{{box-sizing:border-box;margin:0;padding:0;}}
-  html,body{{font-family:'Inter',sans-serif;font-size:12px;background:transparent;overflow:hidden;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{font-family:'Inter',sans-serif;font-size:12px;background:transparent;overflow:hidden;}
+  table,th,td{font-family:'Inter',sans-serif;}
+  tfoot tr td, tbody tr:last-child td{font-family:'Inter',sans-serif;}
   .wrap{{overflow:auto;max-height:{max_height}px;border:1px solid #e2e8f0;
     border-radius:10px;box-shadow:0 4px 20px rgba(30,58,95,.10);background:#fff;}}
   table{{border-collapse:separate;border-spacing:0;min-width:max-content;}}

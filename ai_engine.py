@@ -471,9 +471,9 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
             except Exception:
                 logging.exception("Failed to list Gemini models")
                 
-            model_name = "gemini-2.5-flash"
+            model_name = "gemini-2.5-pro"
             if available_models:
-                preferences = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+                preferences = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro"]
                 matched = None
                 for pref in preferences:
                     for am in available_models:
