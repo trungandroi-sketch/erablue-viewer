@@ -54,9 +54,7 @@ def load_sheet(sheet_name: str) -> pd.DataFrame:
     sheet = wb[sheet_name]
     
     # Read all rows from sheet
-    rows = []
-    for r in range(1, sheet.max_row + 1):
-        rows.append([sheet.cell(r, c).value for c in range(1, sheet.max_column + 1)])
+    rows = list(sheet.iter_rows(values_only=True))
         
     # Custom parser for "Erablue Existing"
     if sheet_name == "Erablue Existing":

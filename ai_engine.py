@@ -30,49 +30,49 @@ BRANDS = [
         "name": "Samsung",
         "color": "#1428a0",
         "table": "Samsung Bàn Demo",
-        "wall": "Tủ Tường Thương hiệu",        # index 0
+        "wall": "Samsung Tủ Tường Thương hiệu",
     },
     {
         "kw": ["apple", "iphone", "ipad"],
         "name": "Apple",
         "color": "#3a3a3c",
         "table": "Apple 1.2m Bàn Demo",
-        "wall": "Tủ Tường Thương hiệu.1",
+        "wall": "Apple 1.2m Tủ Tường Thương hiệu",
     },
     {
         "kw": ["oppo"],
         "name": "OPPO",
         "color": "#1a7c40",
         "table": "OPPO Bàn Demo",
-        "wall": "Tủ Tường Thương hiệu.2",
+        "wall": "OPPO Tủ Tường Thương hiệu",
     },
     {
         "kw": ["xiaomi", "redmi"],
         "name": "Xiaomi",
         "color": "#e05c00",
         "table": "Xiaomi Bàn Demo",
-        "wall": "Tủ Tường Thương hiệu.3",
+        "wall": "Xiaomi Tủ Tường Thương hiệu",
     },
     {
         "kw": ["vivo"],
         "name": "Vivo",
         "color": "#3251ff",
         "table": "Vivo Bàn Demo",
-        "wall": "Tủ Tường Thương hiệu.4",
+        "wall": "Vivo Tủ Tường Thương hiệu",
     },
     {
         "kw": ["realme"],
         "name": "Realme",
         "color": "#c49000",
         "table": "Realme Bàn Demo",
-        "wall": "Tủ Tường Thương hiệu.5",
+        "wall": "Realme Tủ Tường Thương hiệu",
     },
     {
         "kw": ["infinix", "huawei", "multibrand", "đa thương hiệu"],
         "name": "Multibrand (Infinix/Huawei)",
         "color": "#52606d",
-        "table": "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix )",
-        "wall": None,
+        "table": "Infinix Bàn Demo",
+        "wall": "Infinix Tủ Tường Thương hiệu",
     },
 ]
 
@@ -126,15 +126,19 @@ def _count_positive(df: pd.DataFrame, col_normalized: str) -> tuple[int, pd.Data
     return int(mask.sum()), df[mask].copy()
 
 
-def _tbl(rows: pd.DataFrame, n: int = 25) -> str:
+def _tbl(rows: pd.DataFrame, n: int = 25, lang: str = "vi") -> str:
     id_c = _find_col(rows, ID_COL)
     nm_c = _find_col(rows, NAME_COL)
     ar_c = _find_col(rows, AREA_COL)
     pv_c = _find_col(rows, PROV_COL)
     sz_c = _find_col(rows, SIZE_COL)
 
-    lines = ["| ID | Tên Cửa Hàng | Khu Vực | Tỉnh/TP | Size |",
-             "|---|---|---|---|---|"]
+    if lang == "en":
+        lines = ["| ID | Store Name | Region | Province/City | Size |",
+                 "|---|---|---|---|---|"]
+    else:
+        lines = ["| ID | Tên Cửa Hàng | Khu Vực | Tỉnh/TP | Size |",
+                 "|---|---|---|---|---|"]
     for _, r in rows.head(n).iterrows():
         lines.append(
             f"| {r.get(id_c,'') if id_c else ''} "
@@ -145,7 +149,7 @@ def _tbl(rows: pd.DataFrame, n: int = 25) -> str:
         )
     rest = len(rows) - n
     if rest > 0:
-        lines.append(f"| ... | *+{rest} cửa hàng khác* | | | |")
+        lines.append(f"| ... | *+{rest} other stores* | | | |" if lang == "en" else f"| ... | *+{rest} cửa hàng khác* | | | |")
     return "\n".join(lines)
 
 
@@ -332,7 +336,7 @@ def _resolve_specific_column(q: str, df: pd.DataFrame) -> str | None:
 
 
 # ─── Single Store Report Renderer ─────────────────────────────────────────────
-def _render_single_store_view(df_filtered: pd.DataFrame, col_name: str, kind_desc: str, filter_header: str, df_original: pd.DataFrame) -> str:
+def _render_single_store_view(df_filtered: pd.DataFrame, col_name: str, kind_desc: str, filter_header: str, df_original: pd.DataFrame, lang: str = "vi") -> str:
     store_row = df_filtered.iloc[0]
     id_col = _find_col(df_original, ID_COL)
     name_col = _find_col(df_original, NAME_COL)
@@ -352,12 +356,31 @@ def _render_single_store_view(df_filtered: pd.DataFrame, col_name: str, kind_des
         logging.exception("Failed to convert value to float in _render_single_store_view")
         is_positive = pd.notna(val) and str(val).strip() not in ["", "-", "0", "0.0"]
         
-    status_emoji = "✅ CÓ" if is_positive else "❌ KHÔNG"
-    status_text = "có triển khai / sở hữu" if is_positive else "không triển khai / không sở hữu"
-    
-    val_str = f" (Giá trị ghi nhận: `{val}`)" if pd.notna(val) else ""
-    
-    return f"""### 🏪 Kết quả tra cứu cửa hàng **{store_name}** (ID: `{store_id}`)
+    if lang == "en":
+        status_emoji = "✅ YES" if is_positive else "❌ NO"
+        status_text = "possesses / has deployed" if is_positive else "does not possess / has not deployed"
+        val_str = f" (Recorded value: `{val}`)" if pd.notna(val) else ""
+        
+        return f"""### 🏪 Lookup Result for Store **{store_name}** (ID: `{store_id}`)
+{filter_header}
+> **{status_emoji}** – This store **{status_text}** resource **`{kind_desc}`**{val_str}.
+
+---
+
+#### 📋 Store Details:
+- **Region**: {store_row.get(area_col, '') if area_col else ''}
+- **Province/City**: {store_row.get(prov_col, '') if prov_col else ''}
+- **Size**: {store_row.get(size_col, '') if size_col else ''}
+- **Resource Value for `{col_name}`**: `{val}`
+
+_💡 You can query other resources for this store by typing the resource name (e.g. "does store {store_id} have Daikin AC?")._
+"""
+    else:
+        status_emoji = "✅ CÓ" if is_positive else "❌ KHÔNG"
+        status_text = "có triển khai / sở hữu" if is_positive else "không triển khai / không sở hữu"
+        val_str = f" (Giá trị ghi nhận: `{val}`)" if pd.notna(val) else ""
+        
+        return f"""### 🏪 Kết quả tra cứu cửa hàng **{store_name}** (ID: `{store_id}`)
 {filter_header}
 > **{status_emoji}** – Cửa hàng này **{status_text}** tài nguyên **`{kind_desc}`**{val_str}.
 
@@ -589,9 +612,24 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
         pct = count / total * 100 if total else 0
         
         if total == 1:
-            return _render_single_store_view(df_filtered, resolved_col, resolved_col, filter_header, df)
+            return _render_single_store_view(df_filtered, resolved_col, resolved_col, filter_header, df, lang)
             
-        return f"""### 📊 Kết quả phân tích cho câu hỏi của bạn
+        if lang == "en":
+            return f"""### 📊 Analysis Result for your question
+{filter_header}
+> Found most relevant column in database: **`{resolved_col}`**
+>
+> Found **{count}** / **{total}** stores with active value (>0) in this column.
+> → Coverage: **{pct:.1f}%**  {'🟢' if pct >= 50 else '🟡' if pct >= 25 else '🔴'}
+
+---
+
+#### 🏪 Stores List:
+
+{_tbl(sub, 25, lang)}
+"""
+        else:
+            return f"""### 📊 Kết quả phân tích cho câu hỏi của bạn
 {filter_header}
 > Tìm thấy cột phù hợp nhất trong bảng dữ liệu: **`{resolved_col}`**
 >
@@ -602,7 +640,7 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
 
 #### 🏪 Danh sách cửa hàng:
 
-{_tbl(sub, 25)}
+{_tbl(sub, 25, lang)}
 """
 
     # ── 1. Brand ICT queries ────────────────────────────────────────────────
@@ -610,15 +648,38 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
         if any(kw in q for kw in brand["kw"]):
             want_wall = any(w in q for w in ["vách", "vach", "wall", "tường", "tủ tường", "cabinet"])
             col_name = brand["wall"] if (want_wall and brand["wall"]) else brand["table"]
-            kind = "Vách / Tủ Tường" if (want_wall and brand["wall"]) else "Bàn Demo (Table)"
+            
+            if lang == "en":
+                kind = "Wall Brand" if want_wall else "Demo Table"
+            else:
+                kind = "Vách / Tủ Tường" if want_wall else "Bàn Demo (Table)"
 
             count, sub = _count_positive(df_filtered, col_name)
             pct = count / total * 100 if total else 0
 
             if total == 1:
-                return _render_single_store_view(df_filtered, col_name, f"{brand['name']} {kind}", filter_header, df)
+                return _render_single_store_view(df_filtered, col_name, f"{brand['name']} {kind}", filter_header, df, lang)
 
-            return f"""### 📊 Kết quả – **{brand["name"]}** ({kind})
+            if lang == "en":
+                return f"""### 📊 Result – **{brand["name"]}** ({kind})
+{filter_header}
+> Registered **{count}** / **{total}** stores with {kind} of brand **{brand["name"]}**
+> → Coverage rate: **{pct:.1f}%**  {'🟢' if pct >= 50 else '🟡' if pct >= 25 else '🔴'}
+
+---
+
+#### 🏪 List of {count} stores with {kind} **{brand["name"]}**:
+
+{_tbl(sub, 25, lang)}
+
+---
+
+#### 💡 Insight
+- **{total - count}** stores do not have {brand["name"]} {kind.lower()} yet → expansion potential.
+- Coverage {pct:.1f}% {'good ✅' if pct >= 50 else 'moderate ⚠️' if pct >= 25 else 'low – needs improvement 🔴'}.
+"""
+            else:
+                return f"""### 📊 Kết quả – **{brand["name"]}** ({kind})
 {filter_header}
 > Hệ thống ghi nhận **{count}** / **{total}** cửa hàng có {kind} của nhãn **{brand["name"]}**
 > → Tỷ lệ phủ: **{pct:.1f}%**  {'🟢' if pct >= 50 else '🟡' if pct >= 25 else '🔴'}
@@ -627,7 +688,7 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
 
 #### 🏪 Danh sách {count} cửa hàng có {kind} **{brand["name"]}**:
 
-{_tbl(sub, 25)}
+{_tbl(sub, 25, lang)}
 
 ---
 
@@ -651,13 +712,23 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
                 sub = df_filtered[combined].copy()
                 count = len(sub)
                 pct = count / total_original * 100
-                return f"""### 📍 Cửa hàng tại **{loc.title()}**
+                if lang == "en":
+                    return f"""### 📍 Stores in **{loc.title()}**
+{filter_header}
+> Found **{count}** / **{total_original}** stores ({pct:.1f}%) in region **'{loc.title()}'**.
+
+---
+
+{_tbl(sub, 30, lang)}
+"""
+                else:
+                    return f"""### 📍 Cửa hàng tại **{loc.title()}**
 {filter_header}
 > Tìm thấy **{count}** / **{total_original}** cửa hàng ({pct:.1f}%) tại khu vực **'{loc.title()}'**.
 
 ---
 
-{_tbl(sub, 30)}
+{_tbl(sub, 30, lang)}
 """
 
     # ── 3. Area distribution ────────────────────────────────────────────────
@@ -665,10 +736,21 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
         area_col = _find_col(df_filtered, AREA_COL)
         if area_col:
             by_area = df_filtered.groupby(area_col).size().sort_values(ascending=False)
-            lines = ["| Khu Vực | Số Cửa Hàng | Tỷ Lệ |", "|---|---|---|"]
-            for area, cnt in by_area.items():
-                lines.append(f"| {area} | {cnt} | {cnt/total*100:.1f}% |" if total else f"| {area} | {cnt} | 0.0% |")
-            return f"""### 🗺️ Phân Bổ Cửa Hàng Theo Khu Vực
+            if lang == "en":
+                lines = ["| Region | Store Count | Ratio |", "|---|---|---|"]
+                for area, cnt in by_area.items():
+                    lines.append(f"| {area} | {cnt} | {cnt/total*100:.1f}% |" if total else f"| {area} | {cnt} | 0.0% |")
+                return f"""### 🗺️ Store Distribution By Region
+{filter_header}
+> Total **{total}** stores · **{len(by_area)}** regions
+
+{"  " + chr(10).join(lines)}
+"""
+            else:
+                lines = ["| Khu Vực | Số Cửa Hàng | Tỷ Lệ |", "|---|---|---|"]
+                for area, cnt in by_area.items():
+                    lines.append(f"| {area} | {cnt} | {cnt/total*100:.1f}% |" if total else f"| {area} | {cnt} | 0.0% |")
+                return f"""### 🗺️ Phân Bổ Cửa Hàng Theo Khu Vực
 {filter_header}
 > Tổng **{total}** cửa hàng · **{len(by_area)}** khu vực
 
@@ -677,16 +759,35 @@ def analyze(query: str, df: pd.DataFrame, lang: str = "vi") -> str:
 
     # ── 4. All brands summary ───────────────────────────────────────────────
     if total > 1 and any(w in q for w in ["tổng", "tất cả", "hãng", "độ phủ", "coverage", "brand", "tổng hợp"]):
-        lines = ["| Thương Hiệu | Bàn Demo | Vách/Tủ Tường | Tỷ Lệ Bàn |", "|---|---|---|---|"]
-        for brand in BRANDS[:6]:
-            tc, _ = _count_positive(df_filtered, brand["table"])
-            wc = 0
-            if brand["wall"]:
-                wc, _ = _count_positive(df_filtered, brand["wall"])
-            pct = tc / total * 100 if total else 0
-            bar = "█" * int(pct // 5) + "░" * (20 - int(pct // 5))
-            lines.append(f"| **{brand['name']}** | {tc} | {wc} | {pct:.1f}% `{bar}` |")
-        return f"""### 📊 Tổng Hợp Độ Phủ Tất Cả Thương Hiệu ICT
+        if lang == "en":
+            lines = ["| Brand | Demo Table | Brand Wall | Table Ratio |", "|---|---|---|---|"]
+            for brand in BRANDS[:6]:
+                tc, _ = _count_positive(df_filtered, brand["table"])
+                wc = 0
+                if brand["wall"]:
+                    wc, _ = _count_positive(df_filtered, brand["wall"])
+                pct = tc / total * 100 if total else 0
+                bar = "█" * int(pct // 5) + "░" * (20 - int(pct // 5))
+                lines.append(f"| **{brand['name']}** | {tc} | {wc} | {pct:.1f}% `{bar}` |")
+            return f"""### 📊 All ICT Brands Coverage Summary
+{filter_header}
+> System: **{total}** stores
+
+{"  " + chr(10).join(lines)}
+
+_💡 Try asking: "How many stores have OPPO tables?" / "Which stores are in Banten?"_
+"""
+        else:
+            lines = ["| Thương Hiệu | Bàn Demo | Vách/Tủ Tường | Tỷ Lệ Bàn |", "|---|---|---|---|"]
+            for brand in BRANDS[:6]:
+                tc, _ = _count_positive(df_filtered, brand["table"])
+                wc = 0
+                if brand["wall"]:
+                    wc, _ = _count_positive(df_filtered, brand["wall"])
+                pct = tc / total * 100 if total else 0
+                bar = "█" * int(pct // 5) + "░" * (20 - int(pct // 5))
+                lines.append(f"| **{brand['name']}** | {tc} | {wc} | {pct:.1f}% `{bar}` |")
+            return f"""### 📊 Tổng Hợp Độ Phủ Tất Cả Thương Hiệu ICT
 {filter_header}
 > Hệ thống: **{total}** cửa hàng
 
@@ -762,13 +863,28 @@ _💡 Hỏi thêm: "Có mấy shop có bàn OPPO?" / "Shop nào ở Banten?"_
         pct = count / total * 100 if total else 0
         
         if total == 1:
-            return _render_single_store_view(df_filtered, best_col, best_col, filter_header, df)
+            return _render_single_store_view(df_filtered, best_col, best_col, filter_header, df, lang)
 
         other_matches_str = ""
         if len(best_cols) > 1:
             other_matches_str = "\n*Các cột liên quan khác tìm thấy: " + ", ".join(f"`{c}`" for c in best_cols[1:]) + "*"
             
-        return f"""### 📊 Kết quả phân tích cho câu hỏi của bạn
+        if lang == "en":
+            return f"""### 📊 Analysis Result for your question
+{filter_header}
+> Found most relevant column in database: **`{best_col}`**{other_matches_str}
+>
+> Found **{count}** / **{total}** stores with active value (>0) in this column.
+> → Coverage: **{pct:.1f}%**  {'🟢' if pct >= 50 else '🟡' if pct >= 25 else '🔴'}
+
+---
+
+#### 🏪 Stores List:
+
+{_tbl(sub, 25, lang)}
+"""
+        else:
+            return f"""### 📊 Kết quả phân tích cho câu hỏi của bạn
 {filter_header}
 > Tìm thấy cột phù hợp nhất trong bảng dữ liệu: **`{best_col}`**{other_matches_str}
 >
@@ -779,16 +895,37 @@ _💡 Hỏi thêm: "Có mấy shop có bàn OPPO?" / "Shop nào ở Banten?"_
 
 #### 🏪 Danh sách cửa hàng:
 
-{_tbl(sub, 25)}
+{_tbl(sub, 25, lang)}
 """
 
     # ── 6. Default fallback ─────────────────────────────────────────────────
     lines = []
     for brand in BRANDS[:6]:
         cnt, _ = _count_positive(df_filtered, brand["table"])
-        lines.append(f"- **{brand['name']}**: {cnt} cửa hàng có bàn demo ({cnt/total*100:.1f}%)" if total else f"- **{brand['name']}**: {cnt} cửa hàng (0.0%)")
+        if lang == "en":
+            lines.append(f"- **{brand['name']}**: {cnt} stores with demo table ({cnt/total*100:.1f}%)" if total else f"- **{brand['name']}**: {cnt} stores (0.0%)")
+        else:
+            lines.append(f"- **{brand['name']}**: {cnt} cửa hàng có bàn demo ({cnt/total*100:.1f}%)" if total else f"- **{brand['name']}**: {cnt} cửa hàng (0.0%)")
 
-    return f"""### 📊 Tổng Quan Hệ Thống Erablue
+    if lang == "en":
+        return f"""### 📊 Erablue System Overview
+{filter_header}
+The system is managing **{total}** stores.
+ 
+#### ICT Demo Table Coverage:
+{"  " + chr(10).join(lines)}
+ 
+---
+#### 💬 Try asking:
+- "How many stores have OPPO tables?"
+- "How many stores have Samsung walls?"
+- "Which stores are in Banten?"
+- "How many stores have laptop tables?"
+- "Summary of all brand coverage?"
+- "Store distribution by region?"
+"""
+    else:
+        return f"""### 📊 Tổng Quan Hệ Thống Erablue
 {filter_header}
 Hệ thống đang quản lý **{total}** cửa hàng.
  

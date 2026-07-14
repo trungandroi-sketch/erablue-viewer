@@ -143,6 +143,15 @@ T = {
         "pending_col_prov": "Tỉnh / TP",
         "pending_col_addr": "Địa Chỉ",
         "pending_col_go": "GO Estimate",
+        "status_has": "có",
+        "status_no": "chưa có",
+        "surveyed_badge": "gồm <b style='color:#d97706;'>{n}</b> đã k.sát, <b style='color:#64748b;'>{unsurveyed}</b> shop mới",
+        "no_manage": "Không quản lý",
+        "shops_unit": "shop",
+        "pending_sub_total": "/ {total} tổng số cửa hàng",
+        "pending_sub_surveyed": "cửa hàng đã khảo sát xong",
+        "pending_sub_rate": "cửa hàng đã có dữ liệu tài nguyên",
+        "ai_analyzing": "AI đang phân tích dữ liệu trực tiếp...",
     },
     "en": {
         "menu_dashboard": "📊 Dashboard",
@@ -228,6 +237,15 @@ T = {
         "pending_col_prov": "Province / City",
         "pending_col_addr": "Address",
         "pending_col_go": "GO Estimate",
+        "status_has": "has",
+        "status_no": "no",
+        "surveyed_badge": "incl. <b style='color:#d97706;'>{n}</b> surveyed, <b style='color:#64748b;'>{unsurveyed}</b> new stores",
+        "no_manage": "Not managed",
+        "shops_unit": "shops",
+        "pending_sub_total": "/ {total} total stores",
+        "pending_sub_surveyed": "stores surveyed successfully",
+        "pending_sub_rate": "stores have resource data",
+        "ai_analyzing": "AI is analyzing live data...",
     }
 }
 
@@ -838,12 +856,12 @@ if menu == "dashboard":
             if b["wall_col"]:
                 wall_html = (
                     f'<div style="min-width: 140px; text-align: left;">'
-                    f'  🧱 <b>{T[lang]["wall_label"]}:</b> {b["wall"]} có | {total - b["wall"]} chưa có<br>'
-                    f'  <span style="font-size:10px;color:#64748b;">(gồm <b style="color:#d97706;">{b["wall_no"]}</b> đã k.sát, <b style="color:#64748b;">{unsurveyed}</b> shop mới)</span>'
+                    f'  🧱 <b>{T[lang]["wall_label"]}:</b> {b["wall"]} {T[lang]["status_has"]} | {total - b["wall"]} {T[lang]["status_no"]}<br>'
+                    f'  <span style="font-size:10px;color:#64748b;">({T[lang]["surveyed_badge"].format(n=b["wall_no"], unsurveyed=unsurveyed)})</span>'
                     f'</div>'
                 )
             else:
-                wall_html = f'<div style="min-width: 140px; text-align: left; color:#94a3b8;">🧱 <b>{T[lang]["wall_label"]}:</b> Không quản lý</div>'
+                wall_html = f'<div style="min-width: 140px; text-align: left; color:#94a3b8;">🧱 <b>{T[lang]["wall_label"]}:</b> {T[lang]["no_manage"]}</div>'
                 
             st.markdown(
                 f'<div class="brand-row" style="--brand-color:{b["color"]}; flex-direction: column; align-items: stretch; padding: 10px 14px; height: auto; margin-bottom: 6px;">'
@@ -854,8 +872,8 @@ if menu == "dashboard":
                 f'  </div>'
                 f'  <div style="display: flex; font-size: 11px; color: #475569; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 4px; line-height: 1.4;">'
                 f'    <div style="min-width: 140px; text-align: left;">'
-                f'      📱 <b>{T[lang]["table_label"]}:</b> {b["table"]} có | {total - b["table"]} chưa có<br>'
-                f'      <span style="font-size:10px;color:#64748b;">(gồm <b style="color:#d97706;">{b["table_no"]}</b> đã k.sát, <b style="color:#64748b;">{unsurveyed}</b> shop mới)</span>'
+                f'      📱 <b>{T[lang]["table_label"]}:</b> {b["table"]} {T[lang]["status_has"]} | {total - b["table"]} {T[lang]["status_no"]}<br>'
+                f'      <span style="font-size:10px;color:#64748b;">({T[lang]["surveyed_badge"].format(n=b["table_no"], unsurveyed=unsurveyed)})</span>'
                 f'    </div>'
                 f'    {wall_html}'
                 f'  </div>'
@@ -1186,71 +1204,102 @@ elif menu == "viewer":
     _PARTITION_DEFS = [
         ("all", "🌐 Tất cả cột", "🌐 All Columns", None),
         ("capacity", "📊 Tổng công suất", "📊 Total Capacity", [
-            "Còn lại Bàn", "Tường",
-            "Tài nguyên Layout Bàn", "Tường.1",
-            "Tài nguyên Thực tế Bàn", "Tường.2",
+            "Còn lại Bàn", "Còn lại Tường", "Tài nguyên Layout (total Principle) Bàn Demo",
+            "Tài nguyên Layout (total Principle) Tủ Tường Thương hiệu",
+            "Tài nguyên Thực tế (total Principle) Bàn Demo",
+            "Tài nguyên Thực tế (total Principle) Tủ Tường Thương hiệu",
         ]),
         ("ict", "📱 ICT – Bàn & Vách (tất cả hãng)", "📱 ICT – Table & Wall (All brands)", [
-            "Samsung Bàn Demo", "Tủ Tường Thương hiệu",
-            "Apple 1.2m Bàn Demo", "Tủ Tường Thương hiệu.1",
-            "OPPO Bàn Demo", "Tủ Tường Thương hiệu.2",
-            "Xiaomi Bàn Demo", "Tủ Tường Thương hiệu.3",
-            "Vivo Bàn Demo", "Tủ Tường Thương hiệu.4",
-            "Realme Bàn Demo", "Tủ Tường Thương hiệu.5",
-            "Đa thương hiệu (Huawei, Realme, Infinix) Demo ĐA THƯƠNG HIỆU ( Infinix )",
-            "GHI CHÚ",
+            "Samsung Bàn Demo", "Samsung Tủ Tường Thương hiệu",
+            "Apple 1.2m Bàn Demo", "Apple 1.2m Tủ Tường Thương hiệu",
+            "OPPO Bàn Demo", "OPPO Tủ Tường Thương hiệu",
+            "Xiaomi Bàn Demo", "Xiaomi Tủ Tường Thương hiệu",
+            "Vivo Bàn Demo", "Vivo Tủ Tường Thương hiệu",
+            "Realme Bàn Demo", "Realme Tủ Tường Thương hiệu",
+            "Infinix Bàn Demo", "Infinix Tủ Tường Thương hiệu",
         ]),
         ("acc_laptop", "💻 Khu Vực Phụ Kiện & Laptop", "💻 Accessories & Laptop Zone", [
-            "Tủ Điện thoại Điện thoại", "Máy tính bảng",
-            "LAPTOP PRINCIPLE HP", "INTEL", "ACER", "ASUS", "LENOVO",
-            "Laptop Bàn Laptop", "Tủ Laptop",
-            "Phụ kiện Tường", "Fixture (Sàn)", "CCTV + Loa",
+            "Tủ Điện thoại Điện thoại", "Tủ Điện thoại Máy tính bảng",
+            "LAPTOP PRINCIPLE HP", "LAPTOP PRINCIPLE INTEL", "LAPTOP PRINCIPLE ACER",
+            "LAPTOP PRINCIPLE ASUS", "LAPTOP PRINCIPLE LENOVO",
+            "Laptop Bàn Laptop", "Laptop Tủ Laptop",
+            "Phụ kiện Tường", "Phụ kiện Rack", "Phụ kiện CCTV + Loa",
         ]),
         ("erablue", "⚡ Tài Nguyên Erablue Electronics", "⚡ Erablue Electronics Resources", [
             "Tài nguyên cho Erablue Electronics TV Treo tường",
-            "TV Bàn", "Tủ đông", "Nền Tủ lạnh", "Tủ lạnh Tường",
-            "Nền Máy giặt", "Nền Máy sấy", "Nền Máy rửa chén",
-            "KỆ MÁY GIẶT", "Máy giặt Tường", "Máy lạnh Tường",
-            "RIG", "Máy nước nóng Tường",
+            "Tài nguyên cho Erablue Electronics TV Bàn",
+            "Tài nguyên cho Erablue Electronics Tủ đông",
+            "Tài nguyên cho Erablue Electronics Nền Tủ lạnh",
+            "Tài nguyên cho Erablue Electronics Tủ lạnh Tường",
+            "Tài nguyên cho Erablue Electronics Nền Máy giặt",
+            "Tài nguyên cho Erablue Electronics Nền Máy sấy",
+            "Tài nguyên cho Erablue Electronics Nền Máy rửa chén",
+            "Tài nguyên cho Erablue Electronics KỆ MÁY GIẶT",
+            "Tài nguyên cho Erablue Electronics Máy giặt Tường",
+            "Tài nguyên cho Erablue Electronics Máy lạnh Tường",
+            "Tài nguyên cho Erablue Electronics RIG",
+            "Tài nguyên cho Erablue Electronics Máy nước nóng Tường",
         ]),
         ("tv_wall", "📺 TV Treo Tường (Vị Trí Ưu Tiên)", "📺 Brand TV – Wall (Priority Loc)", [
-            "TV Treo tường (Vị trí ưu tiên) Vị trí Sony", "Sony (m)",
-            "Vị trí Samsung", "Samsung (m)",
-            "Vị trí Polytron", "Polytron",
-            "Vị trí Sharp", "Sharp",
-            "Vị trí Toshiba", "Toshiba",
-            "Vị trí TCL", "TCL",
+            "Vách Tivi principle (Vị trí ưu tiên) Vị trí Sony", "Vách Tivi principle (Vị trí ưu tiên) Sony (m)",
+            "Vách Tivi principle (Vị trí ưu tiên) Vị trí Samsung", "Vách Tivi principle (Vị trí ưu tiên) Samsung (m)",
+            "Vách Tivi principle (Vị trí ưu tiên) Vị trí Polytron", "Vách Tivi principle (Vị trí ưu tiên) Polytron",
+            "Vách Tivi principle (Vị trí ưu tiên) Vị trí Sharp", "Vách Tivi principle (Vị trí ưu tiên) Sharp",
+            "Vách Tivi principle (Vị trí ưu tiên) Vị trí Toshiba", "Vách Tivi principle (Vị trí ưu tiên) Toshiba",
+            "Vách Tivi principle (Vị trí ưu tiên) Vị trí TCL", "Vách Tivi principle (Vị trí ưu tiên) TCL",
         ]),
         ("tv_island", "📺 TV Đảo (Island TV)", "📺 Island TV", [
             "TV đảo principle (Nguyên tắc) (/Kệ) Samsung",
-            "Sharp .1", "Sony", "Polytron .1", "Toshiba .1", "TCL .1",
+            "TV đảo principle (Nguyên tắc) (/Kệ) Sharp",
+            "TV đảo principle (Nguyên tắc) (/Kệ) Sony",
+            "TV đảo principle (Nguyên tắc) (/Kệ) Polytron",
+            "TV đảo principle (Nguyên tắc) (/Kệ) Toshiba",
+            "TV đảo principle (Nguyên tắc) (/Kệ) TCL",
         ]),
         ("ac_fridge", "❌️ Máy Lạnh & Tủ Lạnh Hãng", "❌️ AC & Fridge by Brand", [
             "Máy lạnh principle (SL) Panasonic",
-            "Daikin", "LG", "Samsung",
-            "Polytron .2", "Sharp .2", "Midea", "Gree",
-            "Aqua", "TCL .2", "Electrolux",
+            "Máy lạnh principle (SL) Daikin",
+            "Máy lạnh principle (SL) LG",
+            "Máy lạnh principle (SL) Samsung",
+            "Máy lạnh principle (SL) Polytron",
+            "Máy lạnh principle (SL) Sharp",
+            "Máy lạnh principle (SL) Midea",
+            "Máy lạnh principle (SL) Gree",
+            "Máy lạnh principle (SL) Aqua",
+            "Máy lạnh principle (SL) TCL",
+            "Máy lạnh principle (SL) Electrolux",
             "Tủ lạnh principle (/Kệ) Midea",
-            "TCL .3", "Aqua .1", "Polytron .3", "Sharp .3", "Toshiba .2",
+            "Tủ lạnh principle (/Kệ) TCL",
+            "Tủ lạnh principle (/Kệ) Aqua",
+            "Tủ lạnh principle (/Kệ) Polytron",
+            "Tủ lạnh principle (/Kệ) Sharp",
+            "Tủ lạnh principle (/Kệ) Toshiba",
         ]),
         ("wm_sda", "🦺 WM Đảo & SDA", "🦺 WM Island & SDA", [
-            "MÁY GIAT PRINCIPLE Midea",
-            "TCL .4", "Aqua .2", "Polytron .4", "Sharp .4", "Toshiba .3",
+            "Máy Giặt principle Midea",
+            "Máy Giặt principle TCL",
+            "Máy Giặt principle Aqua",
+            "Máy Giặt principle Polytron",
+            "Máy Giặt principle Sharp",
+            "Máy Giặt principle Toshiba",
             "TV đầu tiên của dòng", "Kệ SDA đầu tiên",
-            "SDA MIYAKO (TƯỜNG)", "MIYAKO (ENDCAP)",
-            "PHILIPS (TƯỜNG)", "PHILIPS (ENDCAP)",
-            "ELECTROLUX (TƯỜNG)", "ELECTROLUX (ENDCAP)",
-            "MIDEA (TƯỜNG)", "MIDEA (ENDCAP)", "Kệ", "Tường.3",
+            "SDA MIYAKO (TƯỜNG)", "SDA MIYAKO (ENDCAP)",
+            "SDA PHILIPS (TƯỜNG)", "SDA PHILIPS (ENDCAP)",
+            "SDA ELECTROLUX (TƯỜNG)", "SDA ELECTROLUX (ENDCAP)",
+            "SDA MIDEA (TƯỜNG)", "SDA MIDEA (ENDCAP)", "SDA Kệ", "SDA Tường",
         ]),
         ("poster", "🖼️ Poster & Mặt Tiền & Diện Tích", "🖼️ Poster & Facade & Area", [
-            "TỔNG POSTER TƯỜNG SỬ DỤNG", "CÒN LẠI",
+            "TỔNG POSTER TƯỜNG SỬ SỤNG", "TỔNG POSTER TƯỜNG CÒN LẠI",
             "POSTER TƯỜNG Thuê theo Thương hiệu",
-            "Samsung.1", "Aqua.1", "Polytron.1", "LG.1", "Elux", "Sharp.1",
-            "Logo Erablue", "Logo Erafone",
-            "Mặt tiền Chính (C)", "Khác (R)", "Khác (L)",
+            "POSTER TƯỜNG Samsung", "POSTER TƯỜNG Aqua", "POSTER TƯỜNG Polytron",
+            "POSTER TƯỜNG LG", "POSTER TƯỜNG Elux", "POSTER TƯỜNG Sharp",
+            "POSTER TƯỜNG Logo Erablue", "POSTER TƯỜNG Logo Erafone",
+            "POSTER TƯỜNG 1 đổi 1", "POSTER TƯỜNG Giao hàng và lắp đặt miễn phí",
+            "POSTER TƯỜNG Tổng đài", "POSTER TƯỜNG Website", "POSTER TƯỜNG INTEL",
+            "Mặt tiền Chính (C)", "Mặt tiền Khác (R)", "Mặt tiền Khác (L)",
             "Diện tích (m2) Kho Điện máy",
-            "WC + Phòng Nhân viên", "Kho + Server", "Bãi đậu xe",
-            "Showroom", "Tổng diện tích", "Đất trống",
+            "Diện tích (m2) WC + Phòng Nhân viên", "Diện tích (m2) Kho + Server", "Diện tích (m2) Bãi đậu xe",
+            "Diện tích (m2) Showroom", "Diện tích (m2) Tổng diện tích", "Diện tích (m2) Đất trống",
         ]),
     ]
     PARTITIONS = {}
@@ -1452,7 +1501,7 @@ elif menu == "ai":
                 st.write(user_query)
             
             with st.chat_message("assistant"):
-                with st.spinner("AI is analyzing live data..." if lang == "vi" else "AI is analyzing live data..."):
+                with st.spinner(T[lang]["ai_analyzing"]):
                     try:
                         response_text = analyze(user_query, df_main, lang=lang)
                     except Exception as e:
@@ -1529,7 +1578,7 @@ if menu == "pending":
             f'<div class="kpi-card" style="border-left-color:#f59e0b;">'
             f'<div class="kpi-label">{T[lang]["pending_count_label"]}</div>'
             f'<div class="kpi-value" style="color:#d97706;">{n_pending:,}</div>'
-            f'<div class="kpi-sub">/ {total_stores:,} tổng số cửa hàng</div></div>',
+            f'<div class="kpi-sub">{T[lang]["pending_sub_total"].format(total=total_stores)}</div></div>',
             unsafe_allow_html=True,
         )
     with k2:
@@ -1537,7 +1586,7 @@ if menu == "pending":
             f'<div class="kpi-card" style="border-left-color:#22c55e;">'
             f'<div class="kpi-label">{T[lang]["pending_surveyed_label"]}</div>'
             f'<div class="kpi-value" style="color:#16a34a;">{n_surveyed:,}</div>'
-            f'<div class="kpi-sub">cửa hàng đã khảo sát xong</div></div>',
+            f'<div class="kpi-sub">{T[lang]["pending_sub_surveyed"]}</div></div>',
             unsafe_allow_html=True,
         )
     with k3:
@@ -1546,7 +1595,7 @@ if menu == "pending":
             f'<div class="kpi-card" style="border-left-color:{bar_color};">'
             f'<div class="kpi-label">{T[lang]["pending_rate_label"]}</div>'
             f'<div class="kpi-value" style="color:{bar_color};">{coverage_rate}%</div>'
-            f'<div class="kpi-sub">cửa hàng đã có dữ liệu tài nguyên</div></div>',
+            f'<div class="kpi-sub">{T[lang]["pending_sub_rate"]}</div></div>',
             unsafe_allow_html=True,
         )
 
