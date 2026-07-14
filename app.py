@@ -36,7 +36,6 @@ from data_loader import (
     refresh, last_refresh_label, SHEET_TABS
 )
 from html_table_renderer import render_sticky_table, COLUMN_GROUPS
-from ai_engine import analyze, BRANDS
 import base64
 
 def get_image_base64(path):
@@ -48,6 +47,57 @@ def get_image_base64(path):
     except Exception:
         pass
     return ""
+
+# Anchor keywords identify the FIRST column of each CE category group
+CE_ANCHOR_DEFS = [
+    ("vach_tivi", ["vách tivi", "vach tivi"]),
+    ("tv_dao",    ["tv đảo", "tv dao"]),
+    ("may_lanh",  ["máy lạnh principle", "may lanh principle"]),
+    ("tu_lanh",   ["tủ lạnh principle", "tu lanh principle"]),
+    ("may_giat",  ["máy giặt principle", "may giat principle"]),
+    # Terminator: stops may_giat range before SDA/poster columns that contain brand names
+    ("_end_ce",   ["đầu tiên của dòng", "first tv of line", "kệ sda",
+                   "first shelf", "sda -", "sda–", "poster", "tổng poster"]),
+]
+
+# Brands expected in each group (for counting)
+CE_CAT_BRANDS = {
+    "vach_tivi": ["Sony", "Samsung", "Polytron", "Sharp", "Toshiba", "TCL"],
+    "tv_dao":    ["Samsung", "Sharp", "Sony", "Polytron", "Toshiba", "TCL"],
+    "may_lanh":  ["Panasonic", "Daikin", "LG", "Samsung", "Polytron",
+                  "Sharp", "Midea", "Gree", "Aqua", "TCL", "Electrolux"],
+    "tu_lanh":   ["Midea", "TCL", "Aqua", "Polytron", "Sharp", "Toshiba"],
+    "may_giat":  ["Midea", "Aqua", "Polytron", "Sharp", "Toshiba"],
+}
+
+def get_ce_column(df, cat_key, brand_name):
+    cols = list(df.columns)
+    n = len(cols)
+    anchor_idx = {}
+    for cat, kws in CE_ANCHOR_DEFS:
+        for i, col in enumerate(cols):
+            if any(kw in col.lower() for kw in kws):
+                anchor_idx[cat] = i
+                break
+    if cat_key not in anchor_idx:
+        return None
+    sorted_cats = sorted(anchor_idx.items(), key=lambda x: x[1])
+    start = anchor_idx[cat_key]
+    end = n
+    for k, (cat, idx) in enumerate(sorted_cats):
+        if cat == cat_key:
+            if k + 1 < len(sorted_cats):
+                end = sorted_cats[k + 1][1]
+            break
+    cat_cols = cols[start:end]
+    brand_l = brand_name.lower()
+    for col in cat_cols:
+        cl = col.lower()
+        if "vị trí" in cl or "vi tri" in cl:
+            continue
+        if brand_l in cl:
+            return col
+    return None
 
 # ─── Page configuration ───────────────────────────────────────────────────────
 st.set_page_config(
@@ -145,7 +195,7 @@ T = {
         "pending_col_go": "GO Estimate",
         "status_has": "có",
         "status_no": "chưa có",
-        "surveyed_badge": "gồm <b style='color:#d97706;'>{n}</b> đã k.sát, <b style='color:#64748b;'>{unsurveyed}</b> shop mới",
+        "surveyed_badge": "gồm <b style='color:#d97706;'>{n}</b> cửa hàng, <b style='color:#64748b;'>{unsurveyed}</b> shop mới",
         "no_manage": "Không quản lý",
         "shops_unit": "shop",
         "pending_sub_total": "/ {total} tổng số cửa hàng",
@@ -318,7 +368,7 @@ section[data-testid="stSidebar"] > div:first-child {
     background: linear-gradient(180deg, #8b5cf6 0%, #5b21b6 100%) !important;
     border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
-[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
+[data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] small { color: #f1f5f9; }
 [data-testid="stSidebar"] button {
     background-color: rgba(255, 255, 255, 0.15) !important;
     color: #ffffff !important;
@@ -335,8 +385,6 @@ section[data-testid="stSidebar"] > div:first-child {
 [data-testid="stSidebar"] button p {
     color: #ffffff !important;
 }
-[data-testid="stSidebar"] .stRadio label { color: #cbd5e1 !important; font-size: 15px; }
-[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p { color: #94a3b8 !important; font-size: 12px; }
 
 /* Page animations (smooth slide & fade transition) */
 @keyframes slideFade {
@@ -405,34 +453,35 @@ button:active, [data-testid="stDownloadButton"] button:active {
     display: flex; 
     align-items: center; 
     gap: 14px;
-    padding: 12px 18px; 
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    margin-bottom: 8px;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-left: 5px solid var(--brand-color);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 14px 20px; 
+    border-radius: 16px;
+    background: #ffffff !important;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left: 6px solid var(--brand-color) !important;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .brand-row:hover {
-    transform: translateX(3px);
-    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
-    background: #ffffff;
+    transform: translateY(-2px) translateX(2px) !important;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.03) !important;
+    border-color: #cbd5e1 !important;
 }
 .brand-bar-bg {
     flex: 1; 
-    height: 10px; 
-    background: #e2e8f0;
-    border-radius: 6px; 
+    height: 12px; 
+    background: #f1f5f9;
+    border-radius: 8px; 
     overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
 }
 .brand-bar-fill {
     height: 100%; 
-    border-radius: 6px;
-    background: var(--brand-color);
-    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--brand-color) 0%, rgba(255,255,255,0.15) 100%), var(--brand-color);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Section headers */
@@ -516,40 +565,85 @@ button:active, [data-testid="stDownloadButton"] button:active {
     display: none !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label {
-    background-color: rgba(255, 255, 255, 0.03) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    background-color: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     padding: 12px 16px !important;
-    border-radius: 10px !important;
-    color: #e2e8f0 !important;
+    border-radius: 12px !important;
     cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 46px !important;
+    min-height: 48px !important;
     margin: 0 !important;
     flex: 1 !important;
     width: 100% !important;
-}
-[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.15) !important;
-}
-[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
-    background: rgba(255, 255, 255, 0.16) !important;
-    border-color: rgba(255, 255, 255, 0.35) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
-    color: #ffffff !important;
-}
-[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {
-    color: #ffffff !important;
-    font-weight: 700 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {
-    font-size: 13px !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
     margin: 0 !important;
     padding: 0 !important;
+    transition: color 0.25s ease !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:hover [data-testid="stMarkdownContainer"] p {
+    color: #ffffff !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+    background-color: #ffffff !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16) !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {
+    color: #5b21b6 !important;
+    font-weight: 700 !important;
+    font-size: 13.5px !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked):hover {
+    background-color: #ffffff !important;
+    border-color: #ffffff !important;
+}
+[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked):hover [data-testid="stMarkdownContainer"] p {
+    color: #5b21b6 !important;
+}
+
+/* Custom styling for inputs and selectboxes to make them pop out (nổi khối) */
+div[data-baseweb="input"], div[data-baseweb="select"] {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.05) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+div[data-baseweb="input"] input {
+    background-color: transparent !important;
+    color: #0f172a !important;
+}
+
+/* Hover & Focus state for better UX */
+div[data-baseweb="input"]:hover, div[data-baseweb="select"]:hover {
+    border-color: #94a3b8 !important;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+}
+
+div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Adjust labels for crisp readability */
+.stTextInput label, .stSelectbox label {
+    font-weight: 600 !important;
+    color: #334155 !important;
+    font-size: 13px !important;
+    margin-bottom: 6px !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -588,7 +682,6 @@ with st.sidebar:
         T[lang]["menu_dashboard"],
         T[lang]["menu_viewer"],
         T[lang]["menu_reklame"],
-        T[lang]["menu_ai"],
         T[lang]["menu_pending"],
     ]
     menu_sel = st.radio(
@@ -596,7 +689,7 @@ with st.sidebar:
         menu_opts,
         label_visibility="visible",
     )
-    menu = ["dashboard", "viewer", "reklame", "ai", "pending"][menu_opts.index(menu_sel)]
+    menu = ["dashboard", "viewer", "reklame", "pending"][menu_opts.index(menu_sel)]
 
     st.markdown("<hr style='border-color:rgba(255,255,255,.1);margin:12px 0;'>", unsafe_allow_html=True)
 
@@ -676,7 +769,7 @@ if menu == "dashboard":
         resource_col_start = 11
 
     resource_section = df_main.iloc[:, resource_col_start:]
-    resource_num = resource_section.apply(pd.to_numeric, errors='coerce').fillna(0)
+    resource_num = resource_section.fillna(0)
     row_resource_sum = resource_num.sum(axis=1)
     is_surveyed = row_resource_sum > 0
     unsurveyed = int((~is_surveyed).sum())
@@ -691,7 +784,8 @@ if menu == "dashboard":
 
     brand_stats = []
     for col in df_main.columns:
-        if "bàn demo" in col.lower() or "ban demo" in col.lower():
+        col_lower = col.lower()
+        if ("bàn demo" in col_lower or "ban demo" in col_lower) and not any(kw in col_lower for kw in ["tài nguyên", "tai nguyen", "total", "tổng", "tong"]):
             # Clean and split suffix to extract brand name
             b_name = col
             for sfx in ["bàn demo", "ban demo"]:
@@ -714,14 +808,14 @@ if menu == "dashboard":
                     wall_col = w_col
                     break
             
-            tc_num = pd.to_numeric(df_main[col], errors='coerce').fillna(0)
+            tc_num = df_main[col].fillna(0)
             tc = int((tc_num > 0).sum())
             tc_no = int(((tc_num <= 0) & is_surveyed).sum())
             
             wc = 0
             wc_no = 0
             if wall_col:
-                wc_num = pd.to_numeric(df_main[wall_col], errors='coerce').fillna(0)
+                wc_num = df_main[wall_col].fillna(0)
                 wc = int((wc_num > 0).sum())
                 wc_no = int(((wc_num <= 0) & is_surveyed).sum())
                 
@@ -852,29 +946,38 @@ if menu == "dashboard":
         for b in sorted(brand_stats, key=lambda x: -x["table"]):
             pct = b["pct"]
             
+            # Table display HTML
+            table_html = (
+                f'<div style="flex: 1; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #0f172a; text-align: left; line-height: 1.4;">'
+                f'  📱 <b>{T[lang]["table_label"]}:</b> <span style="font-weight:600;">{b["table"]}</span> {T[lang]["status_has"]} | <span style="font-weight:600;">{total - b["table"]}</span> {T[lang]["status_no"]}<br>'
+                f'  <span style="font-size:10.5px;color:#475569;">({T[lang]["surveyed_badge"].format(n=b["table_no"], unsurveyed=unsurveyed)})</span>'
+                f'</div>'
+            )
+
             # Wall display HTML
             if b["wall_col"]:
                 wall_html = (
-                    f'<div style="min-width: 140px; text-align: left;">'
-                    f'  🧱 <b>{T[lang]["wall_label"]}:</b> {b["wall"]} {T[lang]["status_has"]} | {total - b["wall"]} {T[lang]["status_no"]}<br>'
-                    f'  <span style="font-size:10px;color:#64748b;">({T[lang]["surveyed_badge"].format(n=b["wall_no"], unsurveyed=unsurveyed)})</span>'
+                    f'<div style="flex: 1; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #0f172a; text-align: left; line-height: 1.4;">'
+                    f'  🧱 <b>{T[lang]["wall_label"]}:</b> <span style="font-weight:600;">{b["wall"]}</span> {T[lang]["status_has"]} | <span style="font-weight:600;">{total - b["wall"]}</span> {T[lang]["status_no"]}<br>'
+                    f'  <span style="font-size:10.5px;color:#475569;">({T[lang]["surveyed_badge"].format(n=b["wall_no"], unsurveyed=unsurveyed)})</span>'
                     f'</div>'
                 )
             else:
-                wall_html = f'<div style="min-width: 140px; text-align: left; color:#94a3b8;">🧱 <b>{T[lang]["wall_label"]}:</b> {T[lang]["no_manage"]}</div>'
+                wall_html = (
+                    f'<div style="flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 11.5px; color: #94a3b8; text-align: left; line-height: 1.4;">'
+                    f'  🧱 <b>{T[lang]["wall_label"]}:</b> {T[lang]["no_manage"]}'
+                    f'</div>'
+                )
                 
             st.markdown(
-                f'<div class="brand-row" style="--brand-color:{b["color"]}; flex-direction: column; align-items: stretch; padding: 10px 14px; height: auto; margin-bottom: 6px;">'
-                f'  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">'
-                f'    <div style="min-width:90px;font-weight:700;font-size:12.5px;">{b["name"]}</div>'
+                f'<div class="brand-row" style="--brand-color:{b["color"]}; flex-direction: column; align-items: stretch; padding: 12px 14px; height: auto; margin-bottom: 8px;">'
+                f'  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">'
+                f'    <div style="min-width:90px;font-weight:700;font-size:13px;color:#0f172a;">{b["name"]}</div>'
                 f'    <div class="brand-bar-bg" style="flex-grow: 1; margin: 0 12px;"><div class="brand-bar-fill" style="width:{pct}%;"></div></div>'
-                f'    <div style="min-width:38px;text-align:right;font-weight:700;font-size:12.5px;color:{b["color"]};">{pct}%</div>'
+                f'    <div style="min-width:38px;text-align:right;font-weight:700;font-size:13px;color:{b["color"]};">{pct}%</div>'
                 f'  </div>'
-                f'  <div style="display: flex; font-size: 11px; color: #475569; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 4px; line-height: 1.4;">'
-                f'    <div style="min-width: 140px; text-align: left;">'
-                f'      📱 <b>{T[lang]["table_label"]}:</b> {b["table"]} {T[lang]["status_has"]} | {total - b["table"]} {T[lang]["status_no"]}<br>'
-                f'      <span style="font-size:10px;color:#64748b;">({T[lang]["surveyed_badge"].format(n=b["table_no"], unsurveyed=unsurveyed)})</span>'
-                f'    </div>'
+                f'  <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">'
+                f'    {table_html}'
                 f'    {wall_html}'
                 f'  </div>'
                 f'</div>',
@@ -911,26 +1014,7 @@ if menu == "dashboard":
         "Electrolux":"#6d28d9",
     }
 
-    # Anchor keywords identify the FIRST column of each CE category group
-    CE_ANCHOR_DEFS = [
-        ("vach_tivi", ["vách tivi", "vach tivi"]),
-        ("tv_dao",    ["tv đảo", "tv dao"]),
-        ("may_lanh",  ["máy lạnh principle", "may lanh principle"]),
-        ("tu_lanh",   ["tủ lạnh principle", "tu lanh principle"]),
-        ("may_giat",  ["máy giặt principle", "may giat principle"]),
-        # Terminator: stops may_giat range before SDA/poster columns that contain brand names
-        ("_end_ce",   ["đầu tiên của dòng", "first tv of line", "kệ sda",
-                       "first shelf", "sda -", "sda–", "poster", "tổng poster"]),
-    ]
-    # Brands expected in each group (for counting)
-    CE_CAT_BRANDS = {
-        "vach_tivi": ["Sony", "Samsung", "Polytron", "Sharp", "Toshiba", "TCL"],
-        "tv_dao":    ["Samsung", "Sharp", "Sony", "Polytron", "Toshiba", "TCL"],
-        "may_lanh":  ["Panasonic", "Daikin", "LG", "Samsung", "Polytron",
-                      "Sharp", "Midea", "Gree", "Aqua", "TCL", "Electrolux"],
-        "tu_lanh":   ["Midea", "TCL", "Aqua", "Polytron", "Sharp", "Toshiba"],
-        "may_giat":  ["Midea", "Aqua", "Polytron", "Sharp", "Toshiba"],
-    }
+
 
     def _ce_brand_counts_positional(df: pd.DataFrame) -> dict:
         """
@@ -978,7 +1062,7 @@ if menu == "dashboard":
                     if "vị trí" in cl or "vi tri" in cl:   # skip text/location cols
                         continue
                     if brand_l in cl:
-                        num = pd.to_numeric(df[col], errors="coerce").fillna(0)
+                        num = df[col].fillna(0)
                         count = int((num > 0).sum())
                         break  # ← take FIRST matching col only; prevents false
                                #   positives from poster/SDA cols further in the range
@@ -1158,8 +1242,15 @@ elif menu == "viewer":
             st.error(f"Lỗi tải dữ liệu: {e}")
             st.stop()
 
-    # ── Filter bar ─────────────────────────────────────────────────────────
-    with st.container():
+    # ── Filter panel ───────────────────────────────────────────────────────
+    with st.container(border=True):
+        st.markdown(
+            '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">'
+            '<span style="font-size:18px;">🔍</span>'
+            '<span style="font-weight:700; font-size:14.5px; color:#0f2744;">BỘ LỌC CỬA HÀNG & KHU VỰC</span>'
+            '</div>', 
+            unsafe_allow_html=True
+        )
         fcol1, fcol2, fcol3 = st.columns([2, 2, 1])
         with fcol1:
             search = st.text_input(T[lang]["search_label"], placeholder=T[lang]["search_placeholder"])
@@ -1182,6 +1273,115 @@ elif menu == "viewer":
             else:
                 prov_filter = "Tất cả" if lang == "vi" else "All"
 
+    # ── Brand Filter (ICT & CE) panel ──────────────────────────────────────
+    brand_filter_type = "Không lọc" if lang == "vi" else "No Filter"
+    brand_filter = "Tất cả" if lang == "vi" else "All"
+    brand_status_filter = "Tất cả" if lang == "vi" else "All"
+    ce_cat_filter = ""
+    
+    if sheet_choice == "Erablue Existing":
+        with st.container(border=True):
+            st.markdown(
+                '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">'
+                '<span style="font-size:18px;">📱</span>'
+                '<span style="font-weight:700; font-size:14.5px; color:#0f2744;">BỘ LỌC THEO THƯƠNG HIỆU (ICT & CE)</span>'
+                '</div>', 
+                unsafe_allow_html=True
+            )
+            bfcol1, bfcol2, bfcol3, bfcol4 = st.columns([1.5, 1.5, 1.5, 2.5])
+            
+            with bfcol1:
+                filter_type_options = [
+                    "Không lọc" if lang == "vi" else "No Filter",
+                    "Hãng Điện thoại (ICT)" if lang == "vi" else "Phone Brand (ICT)",
+                    "Thiết bị Điện tử / Gia dụng (CE)" if lang == "vi" else "Consumer Electronics (CE)"
+                ]
+                brand_filter_type = st.selectbox(
+                    "📁 Phân loại lọc:" if lang == "vi" else "📁 Filter Type:",
+                    filter_type_options,
+                    help="Chọn lọc theo hãng điện thoại (ICT) hoặc nhóm đồ gia dụng (CE)." if lang == "vi" else "Choose to filter by phone brand (ICT) or consumer electronics (CE)."
+                )
+                
+            if brand_filter_type in ["Hãng Điện thoại (ICT)", "Phone Brand (ICT)"]:
+                with bfcol2:
+                    detected_brands = []
+                    for col in df_view.columns:
+                        col_lower = col.lower()
+                        if ("bàn demo" in col_lower or "ban demo" in col_lower) and not any(kw in col_lower for kw in ["tài nguyên", "tai nguyen", "total", "tổng", "tong"]):
+                            b_name = col
+                            for sfx in ["bàn demo", "ban demo"]:
+                                idx = b_name.lower().find(sfx)
+                                if idx != -1:
+                                    b_name = b_name[:idx].strip()
+                                    break
+                            display_name = b_name
+                            if display_name.lower().startswith("apple"):
+                                display_name = "Apple"
+                            if display_name not in detected_brands:
+                                detected_brands.append(display_name)
+                    detected_brands = sorted(detected_brands)
+                    brand_filter = st.selectbox(
+                        "📱 Chọn Hãng ICT:" if lang == "vi" else "📱 Select ICT Brand:",
+                        detected_brands
+                    )
+                with bfcol3:
+                    st.write("")
+                with bfcol4:
+                    status_options = [
+                        "Chưa có cả Bàn lẫn Vách (Shop chưa có hãng này)" if lang == "vi" else "No Table and no Wall (Not covered)",
+                        "Có Bàn hoặc Vách (Đã có ít nhất 1 loại)" if lang == "vi" else "Has Table or Wall (At least 1)",
+                        "Có Bàn Demo" if lang == "vi" else "Has Table",
+                        "Có Vách / Tủ tường" if lang == "vi" else "Has Wall",
+                        "Chỉ có Bàn (Không có Vách)" if lang == "vi" else "Has Table only (No Wall)",
+                        "Chỉ có Vách (Không có Bàn)" if lang == "vi" else "Has Wall only (No Table)",
+                        "Có cả Bàn lẫn Vách" if lang == "vi" else "Has both Table and Wall"
+                    ]
+                    brand_status_filter = st.selectbox(
+                        "⚙️ Trạng thái sở hữu:" if lang == "vi" else "⚙️ Resource Status:",
+                        status_options
+                    )
+                    
+            elif brand_filter_type in ["Thiết bị Điện tử / Gia dụng (CE)", "Consumer Electronics (CE)"]:
+                with bfcol2:
+                    ce_cats_vi = {
+                        "vach_tivi": "Vách Tivi",
+                        "tv_dao": "TV Đảo",
+                        "may_lanh": "Máy Lạnh",
+                        "tu_lanh": "Tủ Lạnh",
+                        "may_giat": "Máy Giặt"
+                    }
+                    ce_cats_en = {
+                        "vach_tivi": "TV Wall",
+                        "tv_dao": "Island TV",
+                        "may_lanh": "AC",
+                        "tu_lanh": "Fridge",
+                        "may_giat": "Washer"
+                    }
+                    ce_cats = ce_cats_vi if lang == "vi" else ce_cats_en
+                    ce_cat_choices = list(ce_cats.values())
+                    ce_cat_selected = st.selectbox(
+                        "📺 Nhóm sản phẩm CE:" if lang == "vi" else "📺 CE Category:",
+                        ce_cat_choices
+                    )
+                    ce_cat_filter = [k for k, v in ce_cats.items() if v == ce_cat_selected][0]
+                    
+                with bfcol3:
+                    ce_brands = CE_CAT_BRANDS.get(ce_cat_filter, [])
+                    brand_filter = st.selectbox(
+                        "🏷️ Chọn Hãng CE:" if lang == "vi" else "🏷️ Select CE Brand:",
+                        ce_brands
+                    )
+                    
+                with bfcol4:
+                    status_options = [
+                        "Chưa có (Số lượng = 0)" if lang == "vi" else "Not Covered (Qty = 0)",
+                        "Đã có (Số lượng > 0)" if lang == "vi" else "Covered (Qty > 0)"
+                    ]
+                    brand_status_filter = st.selectbox(
+                        "⚙️ Trạng thái sở hữu:" if lang == "vi" else "⚙️ Resource Status:",
+                        status_options
+                    )
+
     # Apply filters
     filtered = df_view.copy()
     if search:
@@ -1198,6 +1398,80 @@ elif menu == "viewer":
             filtered = filtered[filtered["Tỉnh/Thành phố (Rút gọn)"] == prov_filter]
         elif "Province/City Simplified" in filtered.columns:
             filtered = filtered[filtered["Province/City Simplified"] == prov_filter]
+
+    # Brand & Resource status filtering (ICT & CE)
+    if sheet_choice == "Erablue Existing" and brand_filter_type in ["Hãng Điện thoại (ICT)", "Phone Brand (ICT)"]:
+        table_col = None
+        wall_col = None
+        
+        # 1. Find Table column
+        for col in filtered.columns:
+            col_lower = col.lower()
+            if "bàn demo" in col_lower or "ban demo" in col_lower:
+                b_name = col
+                for sfx in ["bàn demo", "ban demo"]:
+                    idx = b_name.lower().find(sfx)
+                    if idx != -1:
+                        b_name = b_name[:idx].strip()
+                        break
+                display_name = b_name
+                if display_name.lower().startswith("apple"):
+                    display_name = "Apple"
+                if display_name.lower() == brand_filter.lower():
+                    table_col = col
+                    break
+                    
+        # 2. Find Wall column
+        b_name_search = brand_filter
+        if brand_filter.lower() == "apple":
+            b_name_search = "apple 1.2m"
+        for col in filtered.columns:
+            col_lower = col.lower()
+            if b_name_search.lower() in col_lower and ("tường" in col_lower or "tuong" in col_lower or "wall" in col_lower):
+                wall_col = col
+                break
+                
+        # 3. Perform filter logic
+        if table_col:
+            t_val = filtered[table_col].fillna(0)
+            if wall_col:
+                w_val = filtered[wall_col].fillna(0)
+            else:
+                w_val = pd.Series(0, index=filtered.index)
+                
+            # Filter condition matches
+            if "Chưa có cả Bàn lẫn Vách" in brand_status_filter or "No Table and no Wall" in brand_status_filter:
+                filtered = filtered[(t_val <= 0) & (w_val <= 0)]
+            elif "Có Bàn hoặc Vách" in brand_status_filter or "Has Table or Wall" in brand_status_filter:
+                filtered = filtered[(t_val > 0) | (w_val > 0)]
+            elif "Có Bàn Demo" in brand_status_filter or "Has Table" in brand_status_filter:
+                filtered = filtered[t_val > 0]
+            elif "Có Vách" in brand_status_filter or "Has Wall" in brand_status_filter:
+                if wall_col:
+                    filtered = filtered[w_val > 0]
+                else:
+                    filtered = filtered.iloc[0:0]
+            elif "Chỉ có Bàn" in brand_status_filter or "Has Table only" in brand_status_filter:
+                filtered = filtered[(t_val > 0) & (w_val <= 0)]
+            elif "Chỉ có Vách" in brand_status_filter or "Has Wall only" in brand_status_filter:
+                if wall_col:
+                    filtered = filtered[(t_val <= 0) & (w_val > 0)]
+                else:
+                    filtered = filtered.iloc[0:0]
+            elif "Có cả Bàn lẫn Vách" in brand_status_filter or "Has both" in brand_status_filter:
+                if wall_col:
+                    filtered = filtered[(t_val > 0) & (w_val > 0)]
+                else:
+                    filtered = filtered.iloc[0:0]
+                    
+    elif sheet_choice == "Erablue Existing" and brand_filter_type in ["Thiết bị Điện tử / Gia dụng (CE)", "Consumer Electronics (CE)"]:
+        ce_col = get_ce_column(filtered, ce_cat_filter, brand_filter)
+        if ce_col:
+            val = filtered[ce_col].fillna(0)
+            if "Chưa có" in brand_status_filter or "Not Covered" in brand_status_filter:
+                filtered = filtered[val <= 0]
+            elif "Đã có" in brand_status_filter or "Covered" in brand_status_filter:
+                filtered = filtered[val > 0]
 
     # Partitions block
     # Partitions block - column lists defined once, labels vary by language
@@ -1307,31 +1581,40 @@ elif menu == "viewer":
         label = en_lbl if lang == "en" else vi_lbl
         PARTITIONS[label] = cols
 
-    if sheet_choice == "Erablue Existing":
-        pcol1, pcol2 = st.columns([2, 1])
-        with pcol1:
-            part_key = st.selectbox(
-                T[lang]["partition_label"],
-                list(PARTITIONS.keys()),
-                help=T[lang]["partition_help"],
-            )
-            part_cols = PARTITIONS[part_key]
-        with pcol2:
+    # ── Display settings panel ─────────────────────────────────────────────
+    with st.container(border=True):
+        st.markdown(
+            '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">'
+            '<span style="font-size:18px;">⚙️</span>'
+            '<span style="font-weight:700; font-size:14.5px; color:#0f2744;">TÙY CHỌN HIỂN THỊ BẢNG DỮ LIỆU</span>'
+            '</div>', 
+            unsafe_allow_html=True
+        )
+        if sheet_choice == "Erablue Existing":
+            pcol1, pcol2 = st.columns([2, 1])
+            with pcol1:
+                part_key = st.selectbox(
+                    T[lang]["partition_label"],
+                    list(PARTITIONS.keys()),
+                    help=T[lang]["partition_help"],
+                )
+                part_cols = PARTITIONS[part_key]
+            with pcol2:
+                limit_choice = st.selectbox(
+                    "⚡ Tốc độ tải (Số dòng):" if lang == "vi" else "⚡ Load speed (Rows):",
+                    [50, 100, 200, "Hiển thị tất cả" if lang == "vi" else "Show all"],
+                    index=0,
+                    help="Giới hạn số dòng hiển thị của bảng lớn để tối ưu tốc độ load và hiệu năng trình duyệt." if lang == "vi" else "Limits rows to maximize render speed and browser performance."
+                )
+        else:
+            part_key = ""
+            part_cols = None
             limit_choice = st.selectbox(
                 "⚡ Tốc độ tải (Số dòng):" if lang == "vi" else "⚡ Load speed (Rows):",
                 [50, 100, 200, "Hiển thị tất cả" if lang == "vi" else "Show all"],
                 index=0,
                 help="Giới hạn số dòng hiển thị của bảng lớn để tối ưu tốc độ load và hiệu năng trình duyệt." if lang == "vi" else "Limits rows to maximize render speed and browser performance."
             )
-    else:
-        part_key = ""
-        part_cols = None
-        limit_choice = st.selectbox(
-            "⚡ Tốc độ tải (Số dòng):" if lang == "vi" else "⚡ Load speed (Rows):",
-            [50, 100, 200, "Hiển thị tất cả" if lang == "vi" else "Show all"],
-            index=0,
-            help="Giới hạn số dòng hiển thị của bảng lớn để tối ưu tốc độ load và hiệu năng trình duyệt." if lang == "vi" else "Limits rows to maximize render speed and browser performance."
-        )
 
     # Build display dataframe
     CORE_ID_COLS = ["ID Cửa hàng", "Tên Cửa hàng", "Tỉnh/Thành phố (Rút gọn)", "Kích thước Cửa hàng", "Khu vực"]
@@ -1427,103 +1710,7 @@ elif menu == "reklame":
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# PAGE 4 – AI ANALYST
-# ═══════════════════════════════════════════════════════════════════════════════
-elif menu == "ai":
-    st.markdown('<div class="page-wrap">', unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class="page-header">
-        <h1>{T[lang]["ai_title"]}</h1>
-        <p>{T[lang]["ai_subtitle"]}</p>
-    </div>
-    """, unsafe_allow_html=True)
 
-    # Status
-    if data_ok:
-        st.success(T[lang]["ai_status"].format(count=len(df_main)))
-    else:
-        st.error(T[lang]["ai_no_data"])
-        st.stop()
-
-    # Quick-action buttons
-    st.markdown(T[lang]["ai_presets"])
-    qcols = st.columns(4)
-    presets = [
-        ("📱 Bàn OPPO", "Có mấy shop có bàn OPPO?"),
-        ("📱 Vách Samsung", "Có mấy shop có vách Samsung?"),
-        ("🍎 Bàn Apple", "Có mấy shop có bàn Apple?"),
-        ("📱 Bàn Xiaomi", "Có mấy shop có bàn Xiaomi?"),
-    ]
-    qcols2 = st.columns(4)
-    presets2 = [
-        ("📱 Bàn Vivo", "Có mấy shop có bàn Vivo?"),
-        ("📱 Bàn Realme", "Có mấy shop có bàn Realme?"),
-        ("🗺️ Phân bổ vùng", "Phân bổ cửa hàng theo khu vực?"),
-        ("📊 Tất cả hãng", "Tổng hợp độ phủ tất cả hãng ICT?"),
-    ]
-
-    # Initialize history
-    if "chat_history" not in st.session_state:
-        st.session_state["chat_history"] = []
-
-    # Handle preset quick-actions
-    run_preset = None
-    for col, (label, query) in zip(qcols, presets):
-        with col:
-            if st.button(label, use_container_width=True):
-                run_preset = query
-
-    for col, (label, query) in zip(qcols2, presets2):
-        with col:
-            if st.button(label, use_container_width=True):
-                run_preset = query
-
-    st.markdown("---")
-
-    # Render previous chat history
-    chat_container = st.container()
-    with chat_container:
-        for msg in st.session_state["chat_history"]:
-            with st.chat_message(msg["role"]):
-                st.write(msg["content"])
-
-    # Input handling
-    user_query = st.chat_input(T[lang]["ai_placeholder"])
-    if run_preset:
-        user_query = run_preset
-
-    if user_query:
-        # Add user query to chat history
-        st.session_state["chat_history"].append({"role": "user", "content": user_query})
-        with chat_container:
-            with st.chat_message("user"):
-                st.write(user_query)
-            
-            with st.chat_message("assistant"):
-                with st.spinner(T[lang]["ai_analyzing"]):
-                    try:
-                        response_text = analyze(user_query, df_main, lang=lang)
-                    except Exception as e:
-                        logging.error(f"AI query analysis error: {str(e)}")
-                        if lang == "vi":
-                            response_text = "❌ **Đã xảy ra lỗi:** Em không thể biên dịch hoặc phân tích câu hỏi này. Anh vui lòng diễn đạt lại câu hỏi rõ ràng hơn nhé!"
-                        else:
-                            response_text = "❌ **Error:** I could not compile or analyze this query. Please rephrase your question more clearly!"
-                    st.write(response_text)
-                    
-        # Add assistant response to history
-        st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
-        st.rerun()
-
-    # Clear chat button
-    if st.session_state["chat_history"]:
-        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
-        if st.button(T[lang]["ai_clear_btn"]):
-            st.session_state["chat_history"] = []
-            st.rerun()
-
-    st.markdown("</div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE 5 – STORES PENDING SURVEY
@@ -1559,7 +1746,7 @@ if menu == "pending":
 
     # Numeric sum of resource section per row
     resource_section = df_main.iloc[:, resource_col_start:]
-    resource_num     = resource_section.apply(pd.to_numeric, errors='coerce').fillna(0)
+    resource_num     = resource_section.fillna(0)
     row_resource_sum = resource_num.sum(axis=1)
 
     pending_mask  = row_resource_sum == 0

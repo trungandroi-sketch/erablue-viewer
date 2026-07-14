@@ -262,16 +262,11 @@ def load_erablue() -> pd.DataFrame:
         if loc_col in df.columns:
             df[loc_col] = df[loc_col].apply(lambda x: str(x).strip().title() if pd.notna(x) and str(x).strip() != "" else x)
             
-    # Coerce numeric columns (>30% parseable as float → convert)
-    # Start scanning from index 11 onwards (resource columns) to optimize load speed
+    # Coerce all resource columns (index >= 11) to numeric to optimize downstream computation speed
     for idx, col in enumerate(df.columns):
         if idx < 11:
             continue
-        series = df[col]
-        if hasattr(series, "dtype") and pd.api.types.is_object_dtype(series):
-            converted = pd.to_numeric(series, errors="coerce")
-            if converted.notna().sum() > len(df) * 0.3:
-                df[col] = converted
+        df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
 
 

@@ -402,17 +402,19 @@ def _fmt(val, col_name: str | None = None) -> tuple[str, str]:
             
         is_id_or_date = col_name and any(kw in col_name.lower() for kw in ["id", "date", "ngày", "time", "period"])
         
-        if f > 0:
-            if is_id_or_date:
-                s = str(int(f)) if f == int(f) else f"{f:.1f}"
+        # Format large currency/number values elegantly (e.g. 50M, 1.2B) to fit narrow table cells
+        if not is_id_or_date:
+            if abs(f) >= 1_000_000_000:
+                s = f"{f / 1e9:,.2f}B" if (f / 1e9) != int(f / 1e9) else f"{int(f / 1e9)}B"
+            elif abs(f) >= 1_000_000:
+                s = f"{f / 1e6:,.1f}M" if (f / 1e6) != int(f / 1e6) else f"{int(f / 1e6)}M"
             else:
                 s = f"{int(f):,}" if f == int(f) else f"{f:,.1f}"
-            return s, "p"
-            
-        if is_id_or_date:
-            s = str(int(f)) if f == int(f) else str(f)
         else:
-            s = f"{int(f):,}" if f == int(f) else f"{f:,.1f}"
+            s = str(int(f)) if f == int(f) else f"{f:.1f}"
+
+        if f > 0:
+            return s, "p"
         return s, ""
     except (TypeError, ValueError):
         sv = "" if pd.isna(val) else str(val).strip()
@@ -538,8 +540,9 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
                 w = FROZEN_WIDTHS.get(c, 150)
                 body += (
                     f'<td style="position:sticky;left:{lft}px;z-index:3;'
-                    f'min-width:{w}px;max-width:{w+20}px;background:#f0f5ff;'
-                    f'border-right:2px solid #bfdbfe;color:#1e3a5f;font-weight:600;'
+                    f'min-width:{w}px;max-width:{w+20}px;background:#ffffff;'
+                    f'border-right:1px solid #e2e8f0;box-shadow:4px 0 8px rgba(15, 23, 42, 0.03);'
+                    f'color:#0f172a;font-weight:600;'
                     f'padding:4px 10px;white-space:nowrap;overflow:hidden;'
                     f'text-overflow:ellipsis;text-align:left;">{_html.escape(disp)}</td>'
                 )
@@ -568,8 +571,9 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
             total_lbl = "∑ TOTAL" if lang == "en" else "∑ TỔNG"
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
-                f'background:#0a1f44;color:#60a5fa;font-weight:700;padding:6px 10px;'
-                f'text-align:left;border-top:2px solid #3b82f6;">{total_lbl}</td>'
+                f'background:#ffffff;color:#1e3a5f;font-weight:700;padding:6px 10px;'
+                f'text-align:left;border-top:2px solid #cbd5e1;border-right:1px solid #e2e8f0;'
+                f'box-shadow:4px 0 8px rgba(15, 23, 42, 0.03);">{total_lbl}</td>'
             )
         elif c == second_frozen:
             lft = offsets[c]
@@ -577,28 +581,36 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
             store_count_lbl = f"{len(df)} stores" if lang == "en" else f"{len(df)} cửa hàng"
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
-                f'background:#0a1f44;color:#60a5fa;font-weight:700;padding:6px 10px;'
-                f'text-align:left;border-top:2px solid #3b82f6;">{store_count_lbl}</td>'
+                f'background:#ffffff;color:#1e3a5f;font-weight:700;padding:6px 10px;'
+                f'text-align:left;border-top:2px solid #cbd5e1;border-right:1px solid #e2e8f0;'
+                f'box-shadow:4px 0 8px rgba(15, 23, 42, 0.03);">{store_count_lbl}</td>'
             )
         elif c in frozen_present:
             lft = offsets[c]
             w = FROZEN_WIDTHS.get(c, 120)
             sum_cells += (
                 f'<td style="position:sticky;left:{lft}px;z-index:3;min-width:{w}px;'
-                f'background:#0a1f44;border-top:2px solid #3b82f6;"></td>'
+                f'background:#ffffff;border-top:2px solid #cbd5e1;border-right:1px solid #e2e8f0;'
+                f'box-shadow:4px 0 8px rgba(15, 23, 42, 0.03);"></td>'
             )
         else:
             try:
-                num = pd.to_numeric(df[c], errors="coerce")
-                tot = num.sum()
-                cnt = int((num > 0).sum())
+                tot = df[c].sum()
+                cnt = int((df[c] > 0).sum())
                 if cnt > 0:
-                    ts = f"{int(tot):,}" if tot == int(tot) else f"{tot:,.1f}"
+                    # Elegant formatting for large totals (e.g. currency in Millions/Billions)
+                    if abs(tot) >= 1_000_000_000:
+                        ts = f"{tot / 1e9:,.2f}B" if (tot / 1e9) != int(tot / 1e9) else f"{int(tot / 1e9)}B"
+                    elif abs(tot) >= 1_000_000:
+                        ts = f"{tot / 1e6:,.1f}M" if (tot / 1e6) != int(tot / 1e6) else f"{int(tot / 1e6)}M"
+                    else:
+                        ts = f"{int(tot):,}" if tot == int(tot) else f"{tot:,.1f}"
+                        
                     sum_cells += (
                         f'<td style="background:#1e3a5f;color:#93c5fd;font-weight:700;'
-                        f'font-size:10px;text-align:center;padding:4px 6px;'
+                        f'font-size:10px;text-align:center;padding:6px 6px;'
                         f'border-top:2px solid #3b82f6;white-space:nowrap;">'
-                        f'∑{ts}<br><small style="opacity:.7">({cnt}✓)</small></td>'
+                        f'∑{ts}<br><small style="opacity:.75">({cnt}✓)</small></td>'
                     )
                 else:
                     sum_cells += '<td style="background:#1e3a5f;border-top:2px solid #3b82f6;"></td>'
