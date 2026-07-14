@@ -33,18 +33,12 @@ except ImportError:
     _SSL = ssl.create_default_context()
 
 
-# Global in-memory cache for XLSX bytes to avoid downloading it multiple times
-_XLSX_BYTES = None
-
-
+@st.cache_data(ttl=CACHE_TTL, show_spinner=False)
 def _download_xlsx() -> bytes:
-    global _XLSX_BYTES
-    if _XLSX_BYTES is None:
-        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=30, context=_SSL) as r:
-            _XLSX_BYTES = r.read()
-    return _XLSX_BYTES
+    url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=30, context=_SSL) as r:
+        return r.read()
 
 
 # ─── Public API ───────────────────────────────────────────────────────────────
@@ -69,9 +63,17 @@ def load_sheet(sheet_name: str) -> pd.DataFrame:
         r1 = rows[0] if len(rows) > 0 else []
         r2 = rows[1] if len(rows) > 1 else []
         
+        # Forward fill row 1 parent headers
+        r1_filled = []
+        current = None
+        for val in r1:
+            if val is not None and str(val).strip() != "":
+                current = str(val).strip()
+            r1_filled.append(current)
+            
         headers = []
         for i in range(len(r1)):
-            p = str(r1[i]).strip() if r1[i] is not None else ""
+            p = r1_filled[i] if r1_filled[i] is not None else ""
             c = str(r2[i]).strip() if r2[i] is not None else ""
             if p and c:
                 if p.lower() == c.lower() or c == "":
@@ -85,7 +87,17 @@ def load_sheet(sheet_name: str) -> pd.DataFrame:
             else:
                 headers.append(f"Col_{i}")
                 
-        data_rows = rows[2:] if len(rows) > 2 else []
+        data_rows_raw = rows[2:] if len(rows) > 2 else []
+        data_rows = []
+        for row in data_rows_raw:
+            cleaned_row = []
+            for col_idx, val in enumerate(row):
+                if col_idx >= 11 and isinstance(val, datetime.datetime):
+                    cleaned_row.append(float(f"{val.day}.{val.month}"))
+                else:
+                    cleaned_row.append(val)
+            data_rows.append(cleaned_row)
+            
         df = pd.DataFrame(data_rows, columns=headers)
         df = df.dropna(how="all", axis=1)
         id_col = next((c for c in df.columns if "ID" in c and "Cửa hàng" in c), None)
@@ -253,7 +265,10 @@ def load_erablue() -> pd.DataFrame:
             df[loc_col] = df[loc_col].apply(lambda x: str(x).strip().title() if pd.notna(x) and str(x).strip() != "" else x)
             
     # Coerce numeric columns (>30% parseable as float → convert)
-    for col in df.columns:
+    # Start scanning from index 11 onwards (resource columns) to optimize load speed
+    for idx, col in enumerate(df.columns):
+        if idx < 11:
+            continue
         series = df[col]
         if hasattr(series, "dtype") and pd.api.types.is_object_dtype(series):
             converted = pd.to_numeric(series, errors="coerce")
@@ -264,8 +279,6 @@ def load_erablue() -> pd.DataFrame:
 
 def refresh():
     """Clear all cached data – next access will re-fetch from Google Sheets."""
-    global _XLSX_BYTES
-    _XLSX_BYTES = None
     st.cache_data.clear()
 
 

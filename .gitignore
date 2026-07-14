@@ -6,3 +6,5 @@ scratch/
 .env
 *.env
 .env.*
+bin/
+.brain/

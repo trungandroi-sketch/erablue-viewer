@@ -37,6 +37,17 @@ from data_loader import (
 )
 from html_table_renderer import render_sticky_table, COLUMN_GROUPS
 from ai_engine import analyze, BRANDS
+import base64
+
+def get_image_base64(path):
+    try:
+        import os
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+    except Exception:
+        pass
+    return ""
 
 # ─── Page configuration ───────────────────────────────────────────────────────
 st.set_page_config(
@@ -53,6 +64,7 @@ T = {
         "menu_viewer": "📁 Xem Dữ Liệu",
         "menu_reklame": "🎨 Reklame & Branding",
         "menu_ai": "🧠 AI Phân Tích",
+        "menu_pending": "📋 Shop Mới",
         "refresh": "🔄 Làm mới dữ liệu",
         "refreshed": "Đã làm mới! Dữ liệu mới nhất từ Google Sheets.",
         "live_status": "✅ Live · GSheets",
@@ -115,12 +127,29 @@ T = {
         "tbl_prov": "Tỉnh / Thành Phố",
         "tbl_count": "Số cửa hàng",
         "export_btn": "📥 Xuất Excel",
+        "pending_title": "📋 Danh Sách Shop Mới",
+        "pending_subtitle": "Danh sách cửa hàng mới lập, chưa có dữ liệu tài nguyên",
+        "pending_count_label": "🏪 Shop mới",
+        "pending_surveyed_label": "✅ Đã có dữ liệu",
+        "pending_rate_label": "📈 Tỷ lệ phủ dữ liệu",
+        "pending_filter_region": "🗺️ Lọc khu vực:",
+        "pending_filter_prov": "🏙️ Tỉnh/TP:",
+        "pending_search": "🔍 Tìm theo tên shop:",
+        "pending_showing": "Hiển thị <b>{n}</b> shop mới",
+        "pending_empty": "🎉 Tất cả cửa hàng đều đã được khảo sát & có dữ liệu!",
+        "pending_export": "📥 Xuất danh sách Shop mới",
+        "pending_col_name": "Tên Cửa Hàng",
+        "pending_col_region": "Khu Vực",
+        "pending_col_prov": "Tỉnh / TP",
+        "pending_col_addr": "Địa Chỉ",
+        "pending_col_go": "GO Estimate",
     },
     "en": {
         "menu_dashboard": "📊 Dashboard",
         "menu_viewer": "📁 Data Viewer",
         "menu_reklame": "🎨 Reklame & Branding",
         "menu_ai": "🧠 AI Analyst",
+        "menu_pending": "📋 New Stores",
         "refresh": "🔄 Refresh Data",
         "refreshed": "Refreshed! Latest data pulled from Google Sheets.",
         "live_status": "✅ Live · GSheets",
@@ -183,24 +212,50 @@ T = {
         "tbl_prov": "Province / City",
         "tbl_count": "Stores",
         "export_btn": "📥 Export to Excel",
+        "pending_title": "📋 New Stores List",
+        "pending_subtitle": "Newly imported stores with no resource data yet",
+        "pending_count_label": "🏪 New Stores",
+        "pending_surveyed_label": "✅ Has Resource Data",
+        "pending_rate_label": "📈 Data Coverage Rate",
+        "pending_filter_region": "🗺️ Filter Region:",
+        "pending_filter_prov": "🏙️ Province/City:",
+        "pending_search": "🔍 Search by name:",
+        "pending_showing": "Showing <b>{n}</b> new stores",
+        "pending_empty": "🎉 All stores have been surveyed & have data!",
+        "pending_export": "📥 Export New Stores to Excel",
+        "pending_col_name": "Store Name",
+        "pending_col_region": "Region",
+        "pending_col_prov": "Province / City",
+        "pending_col_addr": "Address",
+        "pending_col_go": "GO Estimate",
     }
 }
 
 # ─── Global CSS ───────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
+
+*, *::before, *::after {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    box-sizing: border-box;
+}
 
 html, body, [data-testid="stAppViewContainer"] {
-    font-family: 'Inter', sans-serif !important;
-    background-color: #f8fafc !important;
-    color: #0f172a !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background-color: #f3f4f6 !important;
+    color: #1e293b !important;
+    font-size: 15px; /* Increased from 14px */
+    line-height: 1.65;
+    letter-spacing: -0.015em;
 }
 
 /* Hide default Streamlit chrome, but keep header visible for the sidebar toggle button */
 #MainMenu, footer { display: none !important; visibility: hidden !important; }
 header { background: transparent !important; }
-.block-container { padding: 1.5rem 2rem 2rem 2rem !important; max-width: 100% !important; }
+.block-container { padding: 2rem 2.5rem 3rem 2.5rem !important; max-width: 100% !important; }
 
 /* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
 [data-testid="stHeader"] button:not([data-testid="stSidebarCollapseButton"]):not([aria-label="Expand sidebar"]) { display: none !important; }
@@ -216,144 +271,244 @@ div[class*="viewerBadge"],
     display: none !important;
 }
 
-/* Hide collapse button inside the sidebar to prevent collapsing */
-[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
-[data-testid="stSidebar"] [aria-label="Collapse sidebar"] {
+/* ── FIX: Sidebar always expanded – hide ALL toggle buttons, force translateX(0) ── */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"],
+[aria-label="Collapse sidebar"],
+[aria-label="Expand sidebar"] {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
-/* Style the expand button in the header when collapsed */
-[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"],
-[data-testid="stHeader"] [aria-label="Expand sidebar"] {
-    display: inline-flex !important;
-    background-color: #0f2744 !important;
-    border-radius: 0 8px 8px 0 !important;
-    color: #ffffff !important;
-    box-shadow: 2px 0 8px rgba(15, 39, 68, 0.2) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    transition: background-color 0.2s !important;
+/* Force sidebar to always remain visible even when browser cache has it collapsed */
+section[data-testid="stSidebar"] {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    display: flex !important;
+    min-width: 15rem !important;
+    max-width: 22rem !important;
+    width: 21.5rem !important;
+    transition: none !important;
 }
-[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"]:hover,
-[data-testid="stHeader"] [aria-label="Expand sidebar"]:hover {
-    background-color: #1d4ed8 !important;
-}
-[data-testid="stHeader"] [data-testid="stSidebarCollapseButton"] svg,
-[data-testid="stHeader"] [aria-label="Expand sidebar"] svg {
-    color: #ffffff !important;
+section[data-testid="stSidebar"] > div:first-child {
+    width: 21.5rem !important;
 }
 
-/* Sidebar */
+/* Sidebar styling with rich royal violet gradient matching Creative Tim */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f2744 0%, #1a3a6e 100%) !important;
-    border-right: none !important;
+    background: linear-gradient(180deg, #8b5cf6 0%, #5b21b6 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
-[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
-[data-testid="stSidebar"] .stRadio label { color: #cbd5e1 !important; font-size: 14px; }
-[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p { color: #94a3b8 !important; font-size: 11px; }
+[data-testid="stSidebar"] * { color: #f1f5f9 !important; }
+[data-testid="stSidebar"] button {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    transition: all 0.25s ease !important;
+}
+[data-testid="stSidebar"] button:hover {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+}
+[data-testid="stSidebar"] button p {
+    color: #ffffff !important;
+}
+[data-testid="stSidebar"] .stRadio label { color: #cbd5e1 !important; font-size: 15px; }
+[data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p { color: #94a3b8 !important; font-size: 12px; }
 
-/* Page animations */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
+/* Page animations (smooth slide & fade transition) */
+@keyframes slideFade {
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.page-wrap { animation: fadeUp .35s ease both; }
+.page-wrap { 
+    animation: slideFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    will-change: transform, opacity;
+}
 
 /* Micro-animations and transitions for premium feel */
 button, [data-testid="stDownloadButton"] button, .stButton button, [data-testid="stBaseButton-secondary"] {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 14.5px !important;
 }
-button:active, [data-testid="stDownloadButton"] button:active, .stButton button:active {
-    transform: scale(0.97) !important;
+button:hover, [data-testid="stDownloadButton"] button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(15, 39, 68, 0.15) !important;
+}
+button:active, [data-testid="stDownloadButton"] button:active {
+    transform: scale(0.98) !important;
 }
 
-/* KPI Cards */
+/* KPI Cards: Premium Glassmorphism */
 .kpi-card {
-    background: #ffffff;
-    border-radius: 14px;
-    padding: 20px 24px;
-    box-shadow: 0 2px 12px rgba(30,58,95,.08);
-    border-left: 4px solid #2563eb;
-    transition: transform .2s, box-shadow .2s;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 22px 26px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02);
+    border-left: 5px solid #2563eb;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(30,58,95,.13); }
-.kpi-label { font-size: 11px; font-weight: 600; letter-spacing: .6px;
-    text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
-.kpi-value { font-size: 2.4rem; font-weight: 800; color: #0f2744; line-height: 1.1; }
-.kpi-sub   { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.kpi-card:hover { 
+    transform: translateY(-3px); 
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.03);
+    border-left-width: 7px;
+}
+.kpi-label { 
+    font-size: 12px; 
+    font-weight: 700; 
+    letter-spacing: .8px;
+    text-transform: uppercase; 
+    color: #64748b; 
+    margin-bottom: 5px; 
+}
+.kpi-value { 
+    font-size: 2.8rem; /* Increased from 2.4rem */
+    font-weight: 850; 
+    color: #0f172a; 
+    line-height: 1.15; 
+}
+.kpi-sub { 
+    font-size: 13px; 
+    color: #64748b; 
+    margin-top: 6px; 
+}
 
-/* Brand coverage table */
+/* Brand coverage table: premium rows */
 .brand-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 16px; border-radius: 8px;
-    background: #fff; margin-bottom: 6px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.06);
-    border-left: 4px solid var(--brand-color);
+    display: flex; 
+    align-items: center; 
+    gap: 14px;
+    padding: 12px 18px; 
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-left: 5px solid var(--brand-color);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.brand-row:hover {
+    transform: translateX(3px);
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+    background: #ffffff;
 }
 .brand-bar-bg {
-    flex: 1; height: 8px; background: #e2e8f0;
-    border-radius: 4px; overflow: hidden;
+    flex: 1; 
+    height: 10px; 
+    background: #e2e8f0;
+    border-radius: 6px; 
+    overflow: hidden;
 }
 .brand-bar-fill {
-    height: 100%; border-radius: 4px;
+    height: 100%; 
+    border-radius: 6px;
     background: var(--brand-color);
-    transition: width .6s ease;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Section headers */
 .section-title {
-    font-size: 18px; font-weight: 700; color: #0f2744;
-    margin: 1.5rem 0 .8rem; padding-bottom: .4rem;
+    font-size: 20px; /* Increased from 18px */
+    font-weight: 800; 
+    color: #0f172a;
+    margin: 2rem 0 1rem; 
+    padding-bottom: .5rem;
     border-bottom: 2px solid #e2e8f0;
 }
 
 /* Search & filter bar */
 .filter-bar {
-    background: #fff; border-radius: 10px; padding: 12px 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.06); margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 12px; 
+    padding: 14px 18px;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03); 
+    margin-bottom: 16px;
 }
 
-/* Page header */
+/* Page header: Premium clean white card with violet accent bar matching Creative Tim */
 .page-header {
-    background: linear-gradient(135deg, #0f2744 0%, #1d4ed8 100%);
-    border-radius: 14px; padding: 24px 32px; margin-bottom: 24px;
-    color: white;
+    background: #ffffff !important;
+    border-radius: 16px; 
+    padding: 24px 32px; 
+    margin-bottom: 28px;
+    color: #0f172a !important;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02);
+    border: 1px solid #e2e8f0;
+    border-top: 4px solid #8b5cf6; /* Royal violet accent bar matching the sidebar */
 }
-.page-header h1 { font-size: 26px; font-weight: 800; margin: 0; color: white; }
-.page-header p  { font-size: 13px; color: #93c5fd; margin: 6px 0 0; }
+.page-header h1 { 
+    font-size: 27px;
+    font-weight: 850; 
+    margin: 0; 
+    color: #0f172a !important; 
+    letter-spacing: -0.02em;
+}
+.page-header p { 
+    font-size: 14px;
+    color: #64748b !important; 
+    margin: 6px 0 0; 
+    line-height: 1.5;
+}
 
 /* Partition pills */
-.stSelectbox label { font-weight: 600; font-size: 13px; color: #1e3a5f; }
+.stSelectbox label { 
+    font-weight: 700; 
+    font-size: 14px; 
+    color: #0f172a; 
+}
 
 /* Data badge */
 .data-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: #dcfce7; color: #15803d; padding: 4px 12px;
-    border-radius: 20px; font-size: 11px; font-weight: 600;
+    display: inline-flex; 
+    align-items: center; 
+    gap: 6px;
+    background: #dcfce7; 
+    color: #166534; 
+    padding: 5px 14px;
+    border-radius: 20px; 
+    font-size: 12px; 
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(22, 101, 52, 0.1);
 }
 .data-badge-warn {
-    background: #fef9c3; color: #a16207;
+    background: #fef9c3; 
+    color: #854d0e;
+    box-shadow: 0 1px 3px rgba(133, 77, 14, 0.1);
 }
 
 /* Style Streamlit radio buttons as premium navigation menus in the sidebar */
 [data-testid="stRadio"] div[role="radiogroup"] {
-    gap: 8px !important;
+    gap: 10px !important;
     background: transparent !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
     display: none !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label {
-    background-color: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    padding: 10px 14px !important;
-    border-radius: 8px !important;
-    color: #cbd5e1 !important;
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding: 12px 16px !important;
+    border-radius: 10px !important;
+    color: #e2e8f0 !important;
     cursor: pointer !important;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 42px !important;
+    min-height: 46px !important;
     margin: 0 !important;
     flex: 1 !important;
     width: 100% !important;
@@ -364,9 +519,9 @@ button:active, [data-testid="stDownloadButton"] button:active, .stButton button:
     border-color: rgba(255, 255, 255, 0.15) !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
-    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3) !important;
+    background: rgba(255, 255, 255, 0.16) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
     color: #ffffff !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {
@@ -384,11 +539,17 @@ button:active, [data-testid="stDownloadButton"] button:active, .stButton button:
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
+    logo_base64 = get_image_base64("logo.png")
+    if logo_base64:
+        logo_html = f'<img src="data:image/png;base64,{logo_base64}" style="width: 100px; height: 100px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.25); border: 2px solid rgba(255,255,255,0.25); margin-bottom: 12px;">'
+    else:
+        logo_html = '<div style="font-size:36px;">⚡</div>'
+        
+    st.markdown(f"""
     <div style="text-align:center; padding: 16px 0 12px;">
-        <div style="font-size:36px;">⚡</div>
+        {logo_html}
         <div style="font-size:18px;font-weight:800;color:#e2e8f0;">Erablue</div>
-        <div style="font-size:11px;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">
+        <div style="font-size:11px;color:#cbd5e1;letter-spacing:.5px;text-transform:uppercase;margin-top:4px;">
             Resource Viewer
         </div>
     </div>
@@ -409,14 +570,15 @@ with st.sidebar:
         T[lang]["menu_dashboard"],
         T[lang]["menu_viewer"],
         T[lang]["menu_reklame"],
-        T[lang]["menu_ai"]
+        T[lang]["menu_ai"],
+        T[lang]["menu_pending"],
     ]
     menu_sel = st.radio(
         "**MENU**",
         menu_opts,
         label_visibility="visible",
     )
-    menu = ["dashboard", "viewer", "reklame", "ai"][menu_opts.index(menu_sel)]
+    menu = ["dashboard", "viewer", "reklame", "ai", "pending"][menu_opts.index(menu_sel)]
 
     st.markdown("<hr style='border-color:rgba(255,255,255,.1);margin:12px 0;'>", unsafe_allow_html=True)
 
@@ -485,21 +647,79 @@ if menu == "dashboard":
     n_areas = df_main[area_col].nunique() if area_col else 0
     n_provinces = df_main[prov_col].nunique() if prov_col else 0
 
-    # Compute brand stats
-    brand_stats = []
-    from ai_engine import BRANDS, _count_positive
-    for b in BRANDS[:6]:  # ICT brands only
-        tc, _ = _count_positive(df_main, b["table"])
-        wc = 0
-        if b["wall"]:
-            wc, _ = _count_positive(df_main, b["wall"])
-        brand_stats.append({
-            "name": b["name"], "color": b["color"],
-            "table": tc, "wall": wc,
-            "pct": round(tc / total * 100, 1) if total else 0,
-        })
+    # 1. Identify resource columns start to find unsurveyed stores (stores with 0.0 resource data)
+    RESOURCE_ANCHORS = ['bàn demo', 'vách tivi', 'tv đảo', 'máy lạnh principle', 'tủ lạnh principle', 'máy giặt principle']
+    resource_col_start = None
+    for i, col in enumerate(df_main.columns):
+        if any(kw in col.lower() for kw in RESOURCE_ANCHORS):
+            resource_col_start = i
+            break
+    if resource_col_start is None:
+        resource_col_start = 11
 
-    best_brand = max(brand_stats, key=lambda x: x["table"])
+    resource_section = df_main.iloc[:, resource_col_start:]
+    resource_num = resource_section.apply(pd.to_numeric, errors='coerce').fillna(0)
+    row_resource_sum = resource_num.sum(axis=1)
+    is_surveyed = row_resource_sum > 0
+    unsurveyed = int((~is_surveyed).sum())
+
+    # 2. Dynamic brand detection from 'Bàn Demo' columns
+    BRAND_COLORS = {
+        "samsung": "#1428a0", "apple": "#3a3a3c", "oppo": "#1a7c40",
+        "xiaomi": "#e05c00", "vivo": "#3251ff", "realme": "#c49000",
+        "infinix": "#52606d", "huawei": "#10b981", "itel": "#ef4444",
+        "tecno": "#0284c7"
+    }
+
+    brand_stats = []
+    for col in df_main.columns:
+        if "bàn demo" in col.lower() or "ban demo" in col.lower():
+            # Clean and split suffix to extract brand name
+            b_name = col
+            for sfx in ["bàn demo", "ban demo"]:
+                idx = b_name.lower().find(sfx)
+                if idx != -1:
+                    b_name = b_name[:idx].strip()
+                    break
+            
+            display_name = b_name
+            if display_name.lower().startswith("apple"):
+                display_name = "Apple"
+                
+            brand_key = display_name.lower()
+            
+            # Find the corresponding Wall column
+            wall_col = None
+            for w_col in df_main.columns:
+                w_lower = w_col.lower()
+                if b_name.lower() in w_lower and ("tường" in w_lower or "tuong" in w_lower or "wall" in w_lower):
+                    wall_col = w_col
+                    break
+            
+            tc_num = pd.to_numeric(df_main[col], errors='coerce').fillna(0)
+            tc = int((tc_num > 0).sum())
+            tc_no = int(((tc_num <= 0) & is_surveyed).sum())
+            
+            wc = 0
+            wc_no = 0
+            if wall_col:
+                wc_num = pd.to_numeric(df_main[wall_col], errors='coerce').fillna(0)
+                wc = int((wc_num > 0).sum())
+                wc_no = int(((wc_num <= 0) & is_surveyed).sum())
+                
+            color = BRAND_COLORS.get(brand_key, "#64748b")
+            brand_stats.append({
+                "name": display_name,
+                "color": color,
+                "table": tc,
+                "table_no": tc_no,
+                "wall": wc,
+                "wall_no": wc_no,
+                "wall_col": wall_col,
+                "pct": round(tc / total * 100, 1) if total else 0,
+            })
+
+    best_brand = max(brand_stats, key=lambda x: x["table"]) if brand_stats else {"table": 0, "name": "N/A", "color": "#64748b"}
 
     # ── Calculate opening statuses ─────────────────────────────────────────
     go_col = next((c for c in df_main.columns if "ước tính" in c.lower() and "go" in c.lower()), None)
@@ -552,9 +772,9 @@ if menu == "dashboard":
             )
             valid_setup = setup_series.notna() & (setup_series.dt.year > 1900)
             opened_setup = (df_main[go_col].isna() | (df_main[go_col].astype(str).str.strip() == "")) & \
-                           valid_setup & (setup_series.dt.date <= today) & is_full_setup
+                           valid_setup & (setup_series <= pd.Timestamp(today)) & is_full_setup
         
-        opened_mask = (valid_mask & (go_series.dt.date <= today) & is_full_date) | opened_setup
+        opened_mask = (valid_mask & (go_series <= pd.Timestamp(today)) & is_full_date) | opened_setup
         n_opened = int(opened_mask.sum())
 
     # ── KPI row ────────────────────────────────────────────────────────────
@@ -613,13 +833,32 @@ if menu == "dashboard":
     with col_left:
         for b in sorted(brand_stats, key=lambda x: -x["table"]):
             pct = b["pct"]
+            
+            # Wall display HTML
+            if b["wall_col"]:
+                wall_html = (
+                    f'<div style="min-width: 140px; text-align: left;">'
+                    f'  🧱 <b>{T[lang]["wall_label"]}:</b> {b["wall"]} có | {total - b["wall"]} chưa có<br>'
+                    f'  <span style="font-size:10px;color:#64748b;">(gồm <b style="color:#d97706;">{b["wall_no"]}</b> đã k.sát, <b style="color:#64748b;">{unsurveyed}</b> shop mới)</span>'
+                    f'</div>'
+                )
+            else:
+                wall_html = f'<div style="min-width: 140px; text-align: left; color:#94a3b8;">🧱 <b>{T[lang]["wall_label"]}:</b> Không quản lý</div>'
+                
             st.markdown(
-                f'<div class="brand-row" style="--brand-color:{b["color"]};">'
-                f'  <div style="min-width:90px;font-weight:700;font-size:13px;">{b["name"]}</div>'
-                f'  <div class="brand-bar-bg"><div class="brand-bar-fill" style="width:{pct}%;"></div></div>'
-                f'  <div style="min-width:38px;text-align:right;font-weight:700;font-size:13px;color:{b["color"]};">{pct}%</div>'
-                f'  <div style="min-width:80px;font-size:11px;color:#64748b;">{T[lang]["table_label"]}: {b["table"]}</div>'
-                f'  <div style="min-width:80px;font-size:11px;color:#64748b;">{T[lang]["wall_label"]}: {b["wall"]}</div>'
+                f'<div class="brand-row" style="--brand-color:{b["color"]}; flex-direction: column; align-items: stretch; padding: 10px 14px; height: auto; margin-bottom: 6px;">'
+                f'  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">'
+                f'    <div style="min-width:90px;font-weight:700;font-size:12.5px;">{b["name"]}</div>'
+                f'    <div class="brand-bar-bg" style="flex-grow: 1; margin: 0 12px;"><div class="brand-bar-fill" style="width:{pct}%;"></div></div>'
+                f'    <div style="min-width:38px;text-align:right;font-weight:700;font-size:12.5px;color:{b["color"]};">{pct}%</div>'
+                f'  </div>'
+                f'  <div style="display: flex; font-size: 11px; color: #475569; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 4px; line-height: 1.4;">'
+                f'    <div style="min-width: 140px; text-align: left;">'
+                f'      📱 <b>{T[lang]["table_label"]}:</b> {b["table"]} có | {total - b["table"]} chưa có<br>'
+                f'      <span style="font-size:10px;color:#64748b;">(gồm <b style="color:#d97706;">{b["table_no"]}</b> đã k.sát, <b style="color:#64748b;">{unsurveyed}</b> shop mới)</span>'
+                f'    </div>'
+                f'    {wall_html}'
+                f'  </div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -644,6 +883,160 @@ if menu == "dashboard":
             title=dict(text=T[lang]["donut_title"], font=dict(size=13, color="#0f2744")),
         )
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    # ── CE Brand Coverage (position-based, avoids cross-category name collisions) ─
+    BRAND_COLORS = {
+        "Sony":      "#1c1c1c", "Samsung":   "#1428a0", "Polytron":  "#dc2626",
+        "Sharp":     "#374151", "Toshiba":   "#9f1239", "TCL":       "#d97706",
+        "Panasonic": "#003087", "Daikin":    "#005bac", "LG":        "#a50034",
+        "Midea":     "#0073b7", "Gree":      "#16a34a", "Aqua":      "#0ea5e9",
+        "Electrolux":"#6d28d9",
+    }
+
+    # Anchor keywords identify the FIRST column of each CE category group
+    CE_ANCHOR_DEFS = [
+        ("vach_tivi", ["vách tivi", "vach tivi"]),
+        ("tv_dao",    ["tv đảo", "tv dao"]),
+        ("may_lanh",  ["máy lạnh principle", "may lanh principle"]),
+        ("tu_lanh",   ["tủ lạnh principle", "tu lanh principle"]),
+        ("may_giat",  ["máy giặt principle", "may giat principle"]),
+        # Terminator: stops may_giat range before SDA/poster columns that contain brand names
+        ("_end_ce",   ["đầu tiên của dòng", "first tv of line", "kệ sda",
+                       "first shelf", "sda -", "sda–", "poster", "tổng poster"]),
+    ]
+    # Brands expected in each group (for counting)
+    CE_CAT_BRANDS = {
+        "vach_tivi": ["Sony", "Samsung", "Polytron", "Sharp", "Toshiba", "TCL"],
+        "tv_dao":    ["Samsung", "Sharp", "Sony", "Polytron", "Toshiba", "TCL"],
+        "may_lanh":  ["Panasonic", "Daikin", "LG", "Samsung", "Polytron",
+                      "Sharp", "Midea", "Gree", "Aqua", "TCL", "Electrolux"],
+        "tu_lanh":   ["Midea", "TCL", "Aqua", "Polytron", "Sharp", "Toshiba"],
+        "may_giat":  ["Midea", "Aqua", "Polytron", "Sharp", "Toshiba"],
+    }
+
+    def _ce_brand_counts_positional(df: pd.DataFrame) -> dict:
+        """
+        Use anchor column positions + column ranges to count CE brand stores.
+        Avoids cross-category collisions (e.g. 'Samsung' appears in TV đảo AND Máy lạnh).
+        Returns: {cat_key: {brand_name: count}}
+        """
+        cols = list(df.columns)
+        n    = len(cols)
+
+        # 1. Find the index of the first column in each CE category
+        anchor_idx = {}
+        for cat, kws in CE_ANCHOR_DEFS:
+            for i, col in enumerate(cols):
+                if any(kw in col.lower() for kw in kws):
+                    anchor_idx[cat] = i
+                    break
+
+        if not anchor_idx:
+            return {}
+
+        # 2. Determine column ranges [start, end) per category
+        sorted_cats = sorted(anchor_idx.items(), key=lambda x: x[1])
+        ranges = {}
+        for k, (cat, start) in enumerate(sorted_cats):
+            end = sorted_cats[k + 1][1] if k + 1 < len(sorted_cats) else n
+            ranges[cat] = (start, end)
+
+        # 3. For each category × brand, count shops with value > 0
+        #    Use FIRST-match-then-break strategy:
+        #    - CE data columns appear immediately after their anchor
+        #    - Later columns (poster, SDA…) may share brand names → skip them
+        #      by stopping at the first positive column match per brand.
+        results = {}
+        for cat, (start, end) in ranges.items():
+            if cat.startswith("_"):  # terminator sentinel, skip
+                continue
+            cat_cols = cols[start:end]
+            brand_counts = {}
+            for brand in CE_CAT_BRANDS.get(cat, []):
+                brand_l = brand.lower()
+                count   = 0
+                for col in cat_cols:
+                    cl = col.lower()
+                    if "vị trí" in cl or "vi tri" in cl:   # skip text/location cols
+                        continue
+                    if brand_l in cl:
+                        num = pd.to_numeric(df[col], errors="coerce").fillna(0)
+                        count = int((num > 0).sum())
+                        break  # ← take FIRST matching col only; prevents false
+                               #   positives from poster/SDA cols further in the range
+                brand_counts[brand] = count
+            results[cat] = brand_counts
+        return results
+
+    ce_counts = _ce_brand_counts_positional(df_main)
+
+    # ── Tivi = Vách Tivi + TV Đảo (union by brand, take max) ─────────────────
+    tivi_brands_set = ["Sony", "Samsung", "Polytron", "Sharp", "Toshiba", "TCL"]
+    vach = ce_counts.get("vach_tivi", {})
+    dao  = ce_counts.get("tv_dao",    {})
+    tivi_brands = [
+        {"name": b, "color": BRAND_COLORS.get(b, "#64748b"),
+         "count": max(vach.get(b, 0), dao.get(b, 0))}
+        for b in tivi_brands_set
+    ]
+
+    # ── Máy Lạnh, Tủ Lạnh, Máy Giặt ─────────────────────────────────────────
+    def _cat_to_list(cat_key):
+        data = ce_counts.get(cat_key, {})
+        return [
+            {"name": b, "color": BRAND_COLORS.get(b, "#64748b"), "count": data.get(b, 0)}
+            for b in CE_CAT_BRANDS.get(cat_key, [])
+        ]
+
+    may_lanh_brands = _cat_to_list("may_lanh")
+    tu_lanh_brands  = _cat_to_list("tu_lanh")
+    may_giat_brands = _cat_to_list("may_giat")
+
+    # ── Render section ────────────────────────────────────────────────────────
+    ce_title   = "📺 Độ Phủ Thương Hiệu CE"  if lang == "vi" else "📺 CE Brand Coverage"
+    tivi_lbl   = "📺 Tivi Hãng"              if lang == "vi" else "📺 TV Brands"
+    ac_lbl     = "❄️ Máy Lạnh Hãng"         if lang == "vi" else "❄️ AC Brands"
+    fridge_lbl = "🧊 Tủ Lạnh Hãng"          if lang == "vi" else "🧊 Fridge Brands"
+    wm_lbl     = "🫧 Máy Giặt Hãng"          if lang == "vi" else "🫧 Washer Brands"
+
+    st.markdown(f'<div class="section-title">{ce_title}</div>', unsafe_allow_html=True)
+
+    ce_col1, ce_col2, ce_col3, ce_col4 = st.columns(4)
+
+    def _render_ce_col(col_ctx, brand_list, title):
+        with col_ctx:
+            st.markdown(
+                f'<div style="font-weight:700;font-size:13px;color:#0f2744;margin-bottom:10px;'
+                f'padding:8px 12px;background:#f1f5f9;border-radius:8px;">{title}</div>',
+                unsafe_allow_html=True,
+            )
+            has_data = any(b["count"] > 0 for b in brand_list)
+            if not has_data:
+                st.markdown(
+                    '<div style="color:#94a3b8;font-size:12px;padding:6px 12px;">'
+                    + ("Chưa có dữ liệu" if lang == "vi" else "No data") + "</div>",
+                    unsafe_allow_html=True,
+                )
+                return
+            for b in sorted(brand_list, key=lambda x: -x["count"]):
+                pct = round(b["count"] / total * 100, 1) if total else 0
+                st.markdown(
+                    f'<div class="brand-row" style="--brand-color:{b["color"]};'
+                    f'padding:7px 10px;margin-bottom:4px;">'
+                    f'  <div style="min-width:72px;font-weight:700;font-size:11.5px;">{b["name"]}</div>'
+                    f'  <div class="brand-bar-bg"><div class="brand-bar-fill" style="width:{pct}%;"></div></div>'
+                    f'  <div style="min-width:38px;text-align:right;font-weight:700;'
+                    f'font-size:11.5px;color:{b["color"]}">{pct}%</div>'
+                    f'  <div style="min-width:52px;font-size:10.5px;color:#64748b;">'
+                    f'{b["count"]} shops</div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+    _render_ce_col(ce_col1, tivi_brands,      tivi_lbl)
+    _render_ce_col(ce_col2, may_lanh_brands,  ac_lbl)
+    _render_ce_col(ce_col3, tu_lanh_brands,   fridge_lbl)
+    _render_ce_col(ce_col4, may_giat_brands,  wm_lbl)
 
     # ── Geographical Distribution row ──────────────────────────────────────
     st.markdown(f'<div class="section-title">{T[lang]["dist_title"]}</div>', unsafe_allow_html=True)
@@ -1060,7 +1453,14 @@ elif menu == "ai":
             
             with st.chat_message("assistant"):
                 with st.spinner("AI is analyzing live data..." if lang == "vi" else "AI is analyzing live data..."):
-                    response_text = analyze(user_query, df_main, lang=lang)
+                    try:
+                        response_text = analyze(user_query, df_main, lang=lang)
+                    except Exception as e:
+                        logging.error(f"AI query analysis error: {str(e)}")
+                        if lang == "vi":
+                            response_text = "❌ **Đã xảy ra lỗi:** Em không thể biên dịch hoặc phân tích câu hỏi này. Anh vui lòng diễn đạt lại câu hỏi rõ ràng hơn nhé!"
+                        else:
+                            response_text = "❌ **Error:** I could not compile or analyze this query. Please rephrase your question more clearly!"
                     st.write(response_text)
                     
         # Add assistant response to history
@@ -1073,5 +1473,233 @@ elif menu == "ai":
         if st.button(T[lang]["ai_clear_btn"]):
             st.session_state["chat_history"] = []
             st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE 5 – STORES PENDING SURVEY
+# ═══════════════════════════════════════════════════════════════════════════════
+if menu == "pending":
+    st.markdown('<div class="page-wrap">', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="page-header">
+        <h1>{T[lang]["pending_title"]}</h1>
+        <p>{T[lang]["pending_subtitle"]}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not data_ok or df_main.empty:
+        st.warning("No data available.")
+        st.stop()
+
+    # ── Detect resource columns (CE + ICT anchor columns) ─────────────────────
+    RESOURCE_ANCHORS = [
+        'bàn demo', 'vách tivi', 'tv đảo', 'máy lạnh principle',
+        'tủ lạnh principle', 'máy giặt principle',
+        'wall tv', 'island tv', 'wall air',
+    ]
+    resource_col_start = None
+    for i, col in enumerate(df_main.columns):
+        if any(kw in col.lower() for kw in RESOURCE_ANCHORS):
+            resource_col_start = i
+            break
+
+    if resource_col_start is None:
+        # Fallback: skip first 8 assumed-basic columns
+        resource_col_start = min(8, len(df_main.columns) - 1)
+
+    # Numeric sum of resource section per row
+    resource_section = df_main.iloc[:, resource_col_start:]
+    resource_num     = resource_section.apply(pd.to_numeric, errors='coerce').fillna(0)
+    row_resource_sum = resource_num.sum(axis=1)
+
+    pending_mask  = row_resource_sum == 0
+    df_pending    = df_main[pending_mask].copy()
+    df_surveyed   = df_main[~pending_mask]
+
+    total_stores   = len(df_main)
+    n_pending      = len(df_pending)
+    n_surveyed     = len(df_surveyed)
+    coverage_rate  = round(n_surveyed / total_stores * 100, 1) if total_stores else 0
+
+    # ── KPI row ───────────────────────────────────────────────────────────────
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        st.markdown(
+            f'<div class="kpi-card" style="border-left-color:#f59e0b;">'
+            f'<div class="kpi-label">{T[lang]["pending_count_label"]}</div>'
+            f'<div class="kpi-value" style="color:#d97706;">{n_pending:,}</div>'
+            f'<div class="kpi-sub">/ {total_stores:,} tổng số cửa hàng</div></div>',
+            unsafe_allow_html=True,
+        )
+    with k2:
+        st.markdown(
+            f'<div class="kpi-card" style="border-left-color:#22c55e;">'
+            f'<div class="kpi-label">{T[lang]["pending_surveyed_label"]}</div>'
+            f'<div class="kpi-value" style="color:#16a34a;">{n_surveyed:,}</div>'
+            f'<div class="kpi-sub">cửa hàng đã khảo sát xong</div></div>',
+            unsafe_allow_html=True,
+        )
+    with k3:
+        bar_color = "#22c55e" if coverage_rate >= 70 else ("#f59e0b" if coverage_rate >= 40 else "#ef4444")
+        st.markdown(
+            f'<div class="kpi-card" style="border-left-color:{bar_color};">'
+            f'<div class="kpi-label">{T[lang]["pending_rate_label"]}</div>'
+            f'<div class="kpi-value" style="color:{bar_color};">{coverage_rate}%</div>'
+            f'<div class="kpi-sub">cửa hàng đã có dữ liệu tài nguyên</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+    # Progress bar
+    st.markdown(
+        f'<div style="background:#e2e8f0;border-radius:999px;height:10px;overflow:hidden;margin-bottom:20px;">'
+        f'<div style="width:{coverage_rate}%;height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);'
+        f'border-radius:999px;transition:width .6s ease;"></div></div>',
+        unsafe_allow_html=True,
+    )
+
+    if n_pending == 0:
+        st.success(T[lang]["pending_empty"])
+        st.stop()
+
+    # ── Detect basic info columns ─────────────────────────────────────────────
+    basic_cols = list(df_main.columns[:resource_col_start])
+
+    # Try to identify specific useful columns
+    name_col   = next((c for c in basic_cols if any(k in c.lower() for k in
+                       ['tên', 'name', 'store'])), basic_cols[0] if basic_cols else None)
+    addr_col   = next((c for c in basic_cols if any(k in c.lower() for k in
+                       ['địa chỉ', 'address', 'alamat'])), None)
+    region_col = next((c for c in basic_cols if 'khu' in c.lower() and 'vực' in c.lower()), None)
+    prov_col   = next((c for c in basic_cols if 'rút gọn' in c.lower()), None) or \
+                 next((c for c in basic_cols if 'tỉnh' in c.lower()), None)
+    go_col     = next((c for c in basic_cols if 'go' in c.lower() and
+                       any(k in c.lower() for k in ['estimate', 'date', 'khai'])), None) or \
+                 next((c for c in basic_cols if 'estimate' in c.lower()), None)
+
+    display_cols = [c for c in [name_col, region_col, prov_col, addr_col, go_col] if c]
+    if not display_cols:
+        display_cols = basic_cols[:6]
+
+    # ── Filters ───────────────────────────────────────────────────────────────
+    fa, fb, fc = st.columns([1.5, 1.5, 2])
+
+    with fa:
+        if region_col and df_pending[region_col].notna().any():
+            all_regions = ["Tất cả"] + sorted(df_pending[region_col].dropna().unique().tolist())
+            sel_region = st.selectbox(T[lang]["pending_filter_region"], all_regions)
+        else:
+            sel_region = "Tất cả"
+
+    with fb:
+        if prov_col and df_pending[prov_col].notna().any():
+            source_df = df_pending if sel_region == "Tất cả" else df_pending[
+                df_pending[region_col] == sel_region] if region_col else df_pending
+            all_provs = ["Tất cả"] + sorted(source_df[prov_col].dropna().unique().tolist())
+            sel_prov = st.selectbox(T[lang]["pending_filter_prov"], all_provs)
+        else:
+            sel_prov = "Tất cả"
+
+    with fc:
+        search_q = st.text_input(T[lang]["pending_search"], placeholder="...")
+
+    # ── Apply filters ─────────────────────────────────────────────────────────
+    df_view = df_pending.copy()
+    if sel_region != "Tất cả" and region_col:
+        df_view = df_view[df_view[region_col] == sel_region]
+    if sel_prov != "Tất cả" and prov_col:
+        df_view = df_view[df_view[prov_col] == sel_prov]
+    if search_q and name_col:
+        df_view = df_view[df_view[name_col].astype(str).str.lower()
+                          .str.contains(search_q.lower(), na=False)]
+
+    # ── Summary bar ───────────────────────────────────────────────────────────
+    st.markdown(
+        f'<div class="filter-bar" style="display:flex;justify-content:space-between;align-items:center;">'
+        f'<span style="font-size:13px;color:#334155;">{T[lang]["pending_showing"].format(n=len(df_view))}</span>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Export button ─────────────────────────────────────────────────────────
+    if not df_view.empty:
+        export_df = df_view[display_cols].rename(columns={
+            name_col:   T[lang]["pending_col_name"]   if name_col   else "Name",
+            region_col: T[lang]["pending_col_region"] if region_col else "Region",
+            prov_col:   T[lang]["pending_col_prov"]   if prov_col   else "Province",
+            addr_col:   T[lang]["pending_col_addr"]   if addr_col   else "Address",
+            go_col:     T[lang]["pending_col_go"]     if go_col     else "GO",
+        }) if all(c in df_view.columns for c in display_cols if c) else df_view.iloc[:, :6]
+
+        excel_bytes = convert_df_to_excel(export_df)
+        st.download_button(
+            label=T[lang]["pending_export"],
+            data=excel_bytes,
+            file_name=f"pending_survey_{datetime.date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=False,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Table ─────────────────────────────────────────────────────────────────
+    if df_view.empty:
+        st.info(T[lang]["no_data"] if "no_data" in T[lang] else "No stores found.")
+    else:
+        # Style table rows
+        st.markdown("""
+        <style>
+        .pending-table { width:100%; border-collapse:collapse; font-size:13px;
+            font-family:'Inter',-apple-system,sans-serif; }
+        .pending-table th { background:#0f2744; color:#e2e8f0; padding:10px 14px;
+            text-align:left; font-weight:600; font-size:11px;
+            text-transform:uppercase; letter-spacing:.5px; position:sticky;top:0; }
+        .pending-table td { padding:9px 14px; border-bottom:1px solid #f1f5f9;
+            color:#334155; vertical-align:top; }
+        .pending-table tr:hover td { background:#f8fafc; }
+        .pending-table tr:nth-child(even) td { background:#fafafa; }
+        .badge-region { display:inline-block; padding:2px 8px; border-radius:12px;
+            font-size:10.5px; font-weight:600; background:#dbeafe; color:#1e40af; }
+        .badge-prov   { display:inline-block; padding:2px 8px; border-radius:12px;
+            font-size:10.5px; font-weight:600; background:#dcfce7; color:#15803d; }
+        .pending-wrap { max-height:60vh; overflow-y:auto; border-radius:10px;
+            box-shadow:0 2px 12px rgba(0,0,0,.08); }
+        </style>
+        """, unsafe_allow_html=True)
+
+        rows_html = ""
+        for _, row in df_view.iterrows():
+            name_val   = str(row[name_col])   if name_col   and name_col   in row.index else "—"
+            region_val = str(row[region_col]) if region_col and region_col in row.index else "—"
+            prov_val   = str(row[prov_col])   if prov_col   and prov_col   in row.index else "—"
+            addr_val   = str(row[addr_col])   if addr_col   and addr_col   in row.index else "—"
+            go_val     = str(row[go_col])     if go_col     and go_col     in row.index else "—"
+
+            rows_html += (
+                f"<tr>"
+                f"<td><b>{_html.escape(name_val)}</b></td>"
+                f"<td><span class='badge-region'>{_html.escape(region_val)}</span></td>"
+                f"<td><span class='badge-prov'>{_html.escape(prov_val)}</span></td>"
+                f"<td style='color:#64748b;font-size:12px;'>{_html.escape(addr_val)}</td>"
+                f"<td style='color:#94a3b8;font-size:12px;'>{_html.escape(go_val)}</td>"
+                f"</tr>"
+            )
+
+        th = T[lang]
+        table_html = f"""
+        <div class='pending-wrap'>
+        <table class='pending-table'>
+        <thead><tr>
+            <th>{th['pending_col_name']}</th>
+            <th>{th['pending_col_region']}</th>
+            <th>{th['pending_col_prov']}</th>
+            <th>{th['pending_col_addr']}</th>
+            <th>{th['pending_col_go']}</th>
+        </tr></thead>
+        <tbody>{rows_html}</tbody>
+        </table></div>
+        """
+        st.markdown(table_html, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
