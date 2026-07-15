@@ -334,21 +334,25 @@ html, body, [data-testid="stAppViewContainer"] {
 #MainMenu, footer { display: none !important; visibility: hidden !important; }
 header { background: transparent !important; }
 .block-container { padding: 2rem 2.5rem 3rem 2.5rem !important; max-width: 100% !important; }
-[data-testid="stHeader"] button:not([data-testid="stSidebarCollapseButton"]):not([aria-label="Expand sidebar"]) { display: none !important; }
+@media screen and (min-width: 769px) {
+    [data-testid="stHeader"] button { display: none !important; }
+}
 [data-testid="stHeader"] a { display: none !important; }
 [data-testid="stViewerBadge"], .viewerBadge, [data-testid="stAppShareButton"],
 div[class*="styles_viewerBadge"], div[class*="viewerBadge"], #ConnectionStatus { display: none !important; }
 
-/* === Sidebar always expanded === */
-[data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"],
-[aria-label="Collapse sidebar"], [aria-label="Expand sidebar"] {
-    display: none !important; visibility: hidden !important; pointer-events: none !important;
+/* === Sidebar always expanded on Desktop === */
+@media screen and (min-width: 769px) {
+    [data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"],
+    [aria-label="Collapse sidebar"], [aria-label="Expand sidebar"] {
+        display: none !important; visibility: hidden !important; pointer-events: none !important;
+    }
+    section[data-testid="stSidebar"] {
+        transform: translateX(0) !important; visibility: visible !important; display: flex !important;
+        min-width: 15rem !important; max-width: 22rem !important; width: 21.5rem !important; transition: none !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child { width: 21.5rem !important; }
 }
-section[data-testid="stSidebar"] {
-    transform: translateX(0) !important; visibility: visible !important; display: flex !important;
-    min-width: 15rem !important; max-width: 22rem !important; width: 21.5rem !important; transition: none !important;
-}
-section[data-testid="stSidebar"] > div:first-child { width: 21.5rem !important; }
 
 /* === Sidebar: deep violet with glass shimmer === */
 [data-testid="stSidebar"] {
@@ -660,75 +664,83 @@ button:active, [data-testid="stDownloadButton"] button:active { transform: scale
    ============================================================ */
 @media screen and (max-width: 768px) {
 
-    /* === Sidebar: slide-in drawer === */
+    /* === Sidebar: slide-in drawer controlled by Streamlit toggle === */
     section[data-testid="stSidebar"] {
         position: fixed !important;
-        left: -100% !important;
         top: 0 !important;
         height: 100dvh !important;
         width: 82vw !important;
         min-width: unset !important;
         max-width: 300px !important;
         z-index: 9999 !important;
-        transition: left 0.32s cubic-bezier(0.34,1.2,0.64,1) !important;
+        transition: transform 0.32s cubic-bezier(0.34,1.1,0.64,1) !important;
         box-shadow: 6px 0 32px rgba(0,0,0,0.30) !important;
         overflow-y: auto !important;
-    }
-    /* When Streamlit marks it NOT collapsed, show it */
-    section[data-testid="stSidebar"][aria-expanded="true"] {
+        /* Let Streamlit control via transform, start off-screen */
+        transform: translateX(-110%) !important;
         left: 0 !important;
+        display: flex !important;
+        visibility: visible !important;
+    }
+    /* When expanded (Streamlit removes collapsed state), slide in */
+    section[data-testid="stSidebar"][data-collapsed="false"],
+    section[data-testid="stSidebar"].st-emotion-cache-sidebar-expanded {
+        transform: translateX(0) !important;
     }
 
-    /* === Show & restyle the native Streamlit collapse button as hamburger === */
-    /* The collapse button (when sidebar is open) */
+    /* Tap-to-close overlay on main content when sidebar is expanded */
+    section[data-testid="stSidebar"][data-collapsed="false"] ~ [data-testid="stMain"]::before,
+    section[data-testid="stSidebar"].st-emotion-cache-sidebar-expanded ~ [data-testid="stMain"]::before {
+        content: "" !important;
+        position: fixed !important;
+        inset: 0 !important;
+        background: rgba(0, 0, 0, 0.45) !important;
+        backdrop-filter: blur(2px) !important;
+        -webkit-backdrop-filter: blur(2px) !important;
+        z-index: 9998 !important;
+        pointer-events: none !important;
+    }
+
+    /* === HAMBURGER: show & restyle native Streamlit toggle buttons === */
     [data-testid="stSidebarCollapseButton"],
-    [aria-label="Collapse sidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-        position: fixed !important;
-        top: 12px !important;
-        left: 12px !important;
-        z-index: 10001 !important;
-        width: 44px !important;
-        height: 44px !important;
-        border-radius: 12px !important;
-        background: linear-gradient(135deg, #7c3aed, #4c1d95) !important;
-        border: none !important;
-        box-shadow: 0 4px 16px rgba(91,33,182,0.45) !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-    }
-    /* The expand button (when sidebar is closed) */
     [data-testid="collapsedControl"],
-    [aria-label="Expand sidebar"] {
+    button[aria-label="Collapse sidebar"],
+    button[aria-label="Expand sidebar"] {
         display: flex !important;
         visibility: visible !important;
         pointer-events: auto !important;
+        opacity: 1 !important;
         position: fixed !important;
-        top: 12px !important;
-        left: 12px !important;
-        z-index: 10001 !important;
+        top: 10px !important;
+        left: 10px !important;
+        z-index: 10002 !important;
         width: 44px !important;
         height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
         border-radius: 12px !important;
         background: linear-gradient(135deg, #7c3aed, #4c1d95) !important;
-        border: none !important;
-        box-shadow: 0 4px 16px rgba(91,33,182,0.45) !important;
+        border: 2px solid rgba(255,255,255,0.25) !important;
+        box-shadow: 0 4px 16px rgba(91,33,182,0.55),
+                    0 1px 4px rgba(0,0,0,0.3) !important;
         align-items: center !important;
         justify-content: center !important;
         cursor: pointer !important;
+        padding: 0 !important;
+        color: white !important;
+        overflow: visible !important;
     }
-    /* Style the SVG icons inside the buttons white */
+    /* SVG icon white */
     [data-testid="stSidebarCollapseButton"] svg,
     [data-testid="collapsedControl"] svg,
-    [aria-label="Collapse sidebar"] svg,
-    [aria-label="Expand sidebar"] svg {
+    button[aria-label="Collapse sidebar"] svg,
+    button[aria-label="Expand sidebar"] svg {
         fill: #ffffff !important;
         stroke: #ffffff !important;
-        width: 20px !important;
-        height: 20px !important;
+        color: #ffffff !important;
+        width: 22px !important;
+        height: 22px !important;
+        display: block !important;
     }
 
     /* === Full-width main content === */
