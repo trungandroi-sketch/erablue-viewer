@@ -71,7 +71,7 @@ COLUMN_GROUPS = [
         "cols": ["Realme Bàn Demo", "Realme Tủ Tường Thương hiệu"],
     },
     {
-        "label": "Đa Thương Hiệu", "emoji": "📱",
+        "label": "Infinix", "emoji": "📱",
         "color": "#52606d", "text": "#ffffff",
         "cols": ["Infinix Bàn Demo", "Infinix Tủ Tường Thương hiệu"],
     },
@@ -269,7 +269,7 @@ GROUP_TRANSLATIONS = {
     "Xiaomi": "Xiaomi",
     "Vivo": "Vivo",
     "Realme": "Realme",
-    "Đa Thương Hiệu": "Multi-brand",
+    "Infinix": "Infinix",
     "Phụ Kiện & Laptop": "Accessories & Laptop",
     "Tài Nguyên Erablue": "Erablue Resources",
     "TV Treo Tường (Vị Trí)": "TV Wall (Positions)",
@@ -394,7 +394,10 @@ def _fmt(val, col_name: str | None = None) -> tuple[str, str]:
             return "", "z"
             
         if isinstance(val, (datetime.date, datetime.datetime, pd.Timestamp)):
-            return str(val), ""
+            # Only return the date part – strip the time component (00:00:00)
+            if hasattr(val, 'date'):
+                return str(val.date()), ""
+            return str(val)[:10], ""
             
         f = float(val)
         if f == 0:
@@ -553,8 +556,12 @@ def render_sticky_table(df: pd.DataFrame, max_height: int = 820, lang: str = "vi
                     "": "",
                 }
                 cs = color_map.get(cls, "")
+                # Text columns → left-align if long text or date-like column; else center
+                is_date_col = c and any(kw in c.lower() for kw in ["ngày", "date", "go", "ước tính", "uoc tinh", "time"])
+                is_long_text = cls == "" and len(disp) > 25
+                align = "left" if (is_date_col or is_long_text) else "center"
                 body += (
-                    f'<td style="padding:4px 8px;text-align:center;white-space:nowrap;'
+                    f'<td style="padding:4px 8px;text-align:{align};white-space:nowrap;'
                     f'border-left:1px solid #f1f5f9;font-size:12px;{cs}">'
                     f'{_html.escape(disp)}</td>'
                 )

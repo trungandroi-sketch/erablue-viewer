@@ -313,338 +313,347 @@ st.markdown("""
 
 html, body, [data-testid="stAppViewContainer"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    background-color: #f3f4f6 !important;
     color: #1e293b !important;
-    font-size: 15px; /* Increased from 14px */
+    font-size: 15px;
     line-height: 1.65;
     letter-spacing: -0.015em;
 }
 
-/* Hide default Streamlit chrome, but keep header visible for the sidebar toggle button */
+/* === Rich mesh gradient background === */
+[data-testid="stAppViewContainer"] {
+    background:
+        radial-gradient(ellipse 80% 60% at 10% -10%, rgba(139,92,246,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 95% 5%,  rgba(59,130,246,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 50% 100%,rgba(16,185,129,0.06) 0%, transparent 60%),
+        linear-gradient(160deg, #f0f4ff 0%, #faf5ff 50%, #f0fdf9 100%) !important;
+    background-attachment: fixed !important;
+}
+[data-testid="stMain"] { background: transparent !important; }
+
+/* Hide Streamlit chrome */
 #MainMenu, footer { display: none !important; visibility: hidden !important; }
 header { background: transparent !important; }
 .block-container { padding: 2rem 2.5rem 3rem 2.5rem !important; max-width: 100% !important; }
-
-/* Hide top-right developer toolbar elements (Share, Edit, Star, GitHub link) for a clean UI */
 [data-testid="stHeader"] button:not([data-testid="stSidebarCollapseButton"]):not([aria-label="Expand sidebar"]) { display: none !important; }
 [data-testid="stHeader"] a { display: none !important; }
+[data-testid="stViewerBadge"], .viewerBadge, [data-testid="stAppShareButton"],
+div[class*="styles_viewerBadge"], div[class*="viewerBadge"], #ConnectionStatus { display: none !important; }
 
-/* Hide Streamlit Community Cloud and Hugging Face floating developer/hosting badges at the bottom right */
-[data-testid="stViewerBadge"],
-.viewerBadge,
-[data-testid="stAppShareButton"],
-div[class*="styles_viewerBadge"],
-div[class*="viewerBadge"],
-#ConnectionStatus {
-    display: none !important;
+/* === Sidebar always expanded === */
+[data-testid="stSidebarCollapseButton"], [data-testid="collapsedControl"],
+[aria-label="Collapse sidebar"], [aria-label="Expand sidebar"] {
+    display: none !important; visibility: hidden !important; pointer-events: none !important;
 }
-
-/* ── FIX: Sidebar always expanded – hide ALL toggle buttons, force translateX(0) ── */
-[data-testid="stSidebarCollapseButton"],
-[data-testid="collapsedControl"],
-[aria-label="Collapse sidebar"],
-[aria-label="Expand sidebar"] {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
-
-/* Force sidebar to always remain visible even when browser cache has it collapsed */
 section[data-testid="stSidebar"] {
-    transform: translateX(0) !important;
-    visibility: visible !important;
-    display: flex !important;
-    min-width: 15rem !important;
-    max-width: 22rem !important;
-    width: 21.5rem !important;
-    transition: none !important;
+    transform: translateX(0) !important; visibility: visible !important; display: flex !important;
+    min-width: 15rem !important; max-width: 22rem !important; width: 21.5rem !important; transition: none !important;
 }
-section[data-testid="stSidebar"] > div:first-child {
-    width: 21.5rem !important;
-}
+section[data-testid="stSidebar"] > div:first-child { width: 21.5rem !important; }
 
-/* Sidebar styling with rich royal violet gradient matching Creative Tim */
+/* === Sidebar: deep violet with glass shimmer === */
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #8b5cf6 0%, #5b21b6 100%) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    background:
+        radial-gradient(ellipse 120% 60% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 60%),
+        linear-gradient(180deg, #7c3aed 0%, #4c1d95 60%, #2e1065 100%) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 4px 0 24px rgba(91,33,182,0.25) !important;
 }
-[data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label, [data-testid="stSidebar"] small { color: #f1f5f9; }
+[data-testid="stSidebar"] .stMarkdown,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] small { color: #ede9fe; }
 [data-testid="stSidebar"] button {
-    background-color: rgba(255, 255, 255, 0.15) !important;
+    background-color: rgba(255,255,255,0.10) !important;
     color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border: 1px solid rgba(255,255,255,0.20) !important;
     border-radius: 10px !important;
     font-weight: 600 !important;
     transition: all 0.25s ease !important;
+    backdrop-filter: blur(8px) !important;
 }
 [data-testid="stSidebar"] button:hover {
-    background-color: rgba(255, 255, 255, 0.25) !important;
-    border-color: rgba(255, 255, 255, 0.4) !important;
-    color: #ffffff !important;
+    background-color: rgba(255,255,255,0.22) !important;
+    border-color: rgba(255,255,255,0.45) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
 }
-[data-testid="stSidebar"] button p {
-    color: #ffffff !important;
-}
+[data-testid="stSidebar"] button p { color: #ffffff !important; }
 
-/* Page animations (smooth slide & fade transition) */
-@keyframes slideFade {
-    from { opacity: 0; transform: translateY(12px); }
+/* === Cinematic animation system === */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(22px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.page-wrap { 
-    animation: slideFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; 
+@keyframes springIn {
+    0%   { opacity: 0; transform: scale(0.88) translateY(16px); }
+    60%  { opacity: 1; transform: scale(1.02) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes shimmerMove {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes barGrow { from { width: 0% !important; } }
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 18px rgba(139,92,246,0.4), 0 0 40px rgba(139,92,246,0.15); }
+    50%       { box-shadow: 0 0 28px rgba(139,92,246,0.7), 0 0 60px rgba(139,92,246,0.25); }
+}
+
+.page-wrap {
+    animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     will-change: transform, opacity;
 }
+/* Stagger KPI cards */
+.page-wrap > div > div > div > div:nth-child(1) { animation: springIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.05s both; }
+.page-wrap > div > div > div > div:nth-child(2) { animation: springIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both; }
+.page-wrap > div > div > div > div:nth-child(3) { animation: springIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.19s both; }
+.page-wrap > div > div > div > div:nth-child(4) { animation: springIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.26s both; }
 
-/* Micro-animations and transitions for premium feel */
-button, [data-testid="stDownloadButton"] button, .stButton button, [data-testid="stBaseButton-secondary"] {
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    border-radius: 10px !important;
-    font-weight: 600 !important;
-    font-size: 14.5px !important;
-}
-button:hover, [data-testid="stDownloadButton"] button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(15, 39, 68, 0.15) !important;
-}
-button:active, [data-testid="stDownloadButton"] button:active {
-    transform: scale(0.98) !important;
-}
-
-/* KPI Cards: Premium Glassmorphism */
+/* === Premium KPI Cards === */
 .kpi-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 16px;
-    padding: 22px 26px;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02);
-    border-left: 5px solid #2563eb;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.70);
+    border-radius: 20px;
+    padding: 22px 24px 18px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.06), 0 0 0 1px rgba(255,255,255,0.5) inset;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-.kpi-card:hover { 
-    transform: translateY(-3px); 
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.03);
-    border-left-width: 7px;
+/* Gradient top accent bar */
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--kpi-accent, linear-gradient(90deg, #6366f1, #8b5cf6));
+    border-radius: 20px 20px 0 0;
 }
-.kpi-label { 
-    font-size: 12px; 
-    font-weight: 700; 
-    letter-spacing: .8px;
-    text-transform: uppercase; 
-    color: #64748b; 
-    margin-bottom: 5px; 
+/* Watermark icon */
+.kpi-card::after {
+    content: attr(data-icon);
+    position: absolute;
+    right: 14px; bottom: 6px;
+    font-size: 56px;
+    opacity: 0.055;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
 }
-.kpi-value { 
-    font-size: 2.8rem; /* Increased from 2.4rem */
-    font-weight: 850; 
-    color: #0f172a; 
-    line-height: 1.15; 
+.kpi-card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 8px 32px rgba(15,23,42,0.10), 0 20px 48px rgba(15,23,42,0.06), 0 0 0 1px rgba(255,255,255,0.6) inset;
 }
-.kpi-sub { 
-    font-size: 13px; 
-    color: #64748b; 
-    margin-top: 6px; 
+.kpi-card:hover::before {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+    background-size: 200% auto;
+    animation: shimmerMove 1.2s linear infinite;
+}
+.kpi-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
+.kpi-value {
+    font-size: 2.9rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    animation: countUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.kpi-sub {
+    font-size: 12.5px;
+    color: #64748b;
+    margin-top: 7px;
+    line-height: 1.4;
 }
 
-/* Brand coverage table: premium rows */
+/* === Brand coverage rows === */
 .brand-row {
-    display: flex; 
-    align-items: center; 
+    display: flex;
+    align-items: center;
     gap: 14px;
-    padding: 14px 20px; 
+    padding: 14px 20px;
     border-radius: 16px;
-    background: #ffffff !important;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02) !important;
-    border: 1px solid #e2e8f0 !important;
-    border-left: 6px solid var(--brand-color) !important;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: rgba(255,255,255,0.9) !important;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 12px rgba(15,23,42,0.05), 0 1px 3px rgba(15,23,42,0.04) !important;
+    border: 1px solid rgba(255,255,255,0.8) !important;
+    border-left: 5px solid var(--brand-color) !important;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1) !important;
+    backdrop-filter: blur(8px) !important;
 }
 .brand-row:hover {
-    transform: translateY(-2px) translateX(2px) !important;
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08), 0 4px 10px rgba(15, 23, 42, 0.03) !important;
-    border-color: #cbd5e1 !important;
+    transform: translateX(5px) translateY(-2px) !important;
+    box-shadow: 0 8px 28px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.05) !important;
+    border-left-width: 7px !important;
+    background: rgba(255,255,255,0.97) !important;
 }
 .brand-bar-bg {
-    flex: 1; 
-    height: 12px; 
-    background: #f1f5f9;
-    border-radius: 8px; 
-    overflow: hidden;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
-    border: 1px solid #e2e8f0;
+    flex: 1; height: 8px; background: #f1f5f9;
+    border-radius: 8px; overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.07);
 }
 .brand-bar-fill {
-    height: 100%; 
-    border-radius: 8px;
-    background: linear-gradient(90deg, var(--brand-color) 0%, rgba(255,255,255,0.15) 100%), var(--brand-color);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+    height: 100%; border-radius: 8px;
+    background: linear-gradient(90deg, var(--brand-color) 0%, rgba(255,255,255,0.3) 100%), var(--brand-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    animation: barGrow 1.2s cubic-bezier(0.16,1,0.3,1) both;
 }
 
-/* Section headers */
+/* === Section titles with violet accent === */
 .section-title {
-    font-size: 20px; /* Increased from 18px */
-    font-weight: 800; 
-    color: #0f172a;
-    margin: 2rem 0 1rem; 
-    padding-bottom: .5rem;
-    border-bottom: 2px solid #e2e8f0;
+    font-size: 19px; font-weight: 800; color: #0f172a;
+    margin: 2rem 0 1.1rem; padding-bottom: 0.6rem;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: none;
+}
+.section-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 22px; border-radius: 4px;
+    background: linear-gradient(180deg, #8b5cf6, #6366f1);
+    flex-shrink: 0;
+}
+.section-title::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, #e2e8f0, transparent);
+    margin-left: 8px;
 }
 
-/* Search & filter bar */
+/* === Filter bar === */
 .filter-bar {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    border-radius: 12px; 
-    padding: 14px 18px;
-    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03); 
+    background: rgba(255,255,255,0.88);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 14px; padding: 14px 18px;
+    box-shadow: 0 2px 12px rgba(15,23,42,0.05);
     margin-bottom: 16px;
 }
 
-/* Page header: Premium clean white card with violet accent bar matching Creative Tim */
+/* === Page header: Hero glass banner === */
 .page-header {
-    background: #ffffff !important;
-    border-radius: 16px; 
-    padding: 24px 32px; 
-    margin-bottom: 28px;
-    color: #0f172a !important;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.02);
-    border: 1px solid #e2e8f0;
-    border-top: 4px solid #8b5cf6; /* Royal violet accent bar matching the sidebar */
+    position: relative;
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-radius: 20px; padding: 28px 36px; margin-bottom: 24px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04), 0 8px 32px rgba(15,23,42,0.07), 0 0 0 1px rgba(255,255,255,0.6) inset;
+    border: 1px solid rgba(255,255,255,0.65);
 }
-.page-header h1 { 
-    font-size: 27px;
-    font-weight: 850; 
-    margin: 0; 
-    color: #0f172a !important; 
-    letter-spacing: -0.02em;
+.page-header::before {
+    content: '';
+    position: absolute; top: -40px; right: -40px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);
+    pointer-events: none;
 }
-.page-header p { 
-    font-size: 14px;
-    color: #64748b !important; 
-    margin: 6px 0 0; 
-    line-height: 1.5;
+.page-header::after {
+    content: '';
+    position: absolute; bottom: 0; left: 36px; right: 36px; height: 2px;
+    background: linear-gradient(90deg, #8b5cf6, #6366f1, transparent);
+    border-radius: 1px;
+}
+.page-header h1 {
+    font-size: 26px; font-weight: 800; margin: 0;
+    color: #0f172a !important; letter-spacing: -0.025em; line-height: 1.2;
+}
+.page-header p {
+    font-size: 13.5px; color: #64748b !important; margin: 7px 0 0; line-height: 1.5;
 }
 
-/* Partition pills */
-.stSelectbox label { 
-    font-weight: 700; 
-    font-size: 14px; 
-    color: #0f172a; 
-}
+/* === Misc === */
+.stSelectbox label { font-weight: 700; font-size: 14px; color: #0f172a; }
 
-/* Data badge */
 .data-badge {
-    display: inline-flex; 
-    align-items: center; 
-    gap: 6px;
-    background: #dcfce7; 
-    color: #166534; 
-    padding: 5px 14px;
-    border-radius: 20px; 
-    font-size: 12px; 
-    font-weight: 700;
-    box-shadow: 0 1px 3px rgba(22, 101, 52, 0.1);
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    color: #166534; padding: 5px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+    box-shadow: 0 1px 4px rgba(22,101,52,0.12);
+    border: 1px solid rgba(22,101,52,0.12);
 }
 .data-badge-warn {
-    background: #fef9c3; 
-    color: #854d0e;
-    box-shadow: 0 1px 3px rgba(133, 77, 14, 0.1);
+    background: linear-gradient(135deg, #fef9c3, #fef08a);
+    color: #854d0e; border-color: rgba(133,77,14,0.12);
 }
 
-/* Style Streamlit radio buttons as premium navigation menus in the sidebar */
-[data-testid="stRadio"] div[role="radiogroup"] {
-    gap: 10px !important;
-    background: transparent !important;
-}
-[data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
-    display: none !important;
-}
+/* === Sidebar radio nav === */
+[data-testid="stRadio"] div[role="radiogroup"] { gap: 8px !important; background: transparent !important; }
+[data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child { display: none !important; }
 [data-testid="stRadio"] div[role="radiogroup"] > label {
-    background-color: rgba(255, 255, 255, 0.06) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    padding: 12px 16px !important;
-    border-radius: 12px !important;
+    background-color: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    padding: 11px 16px !important; border-radius: 12px !important;
     cursor: pointer !important;
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 48px !important;
-    margin: 0 !important;
-    flex: 1 !important;
-    width: 100% !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1) !important;
+    display: inline-flex !important; align-items: center !important;
+    min-height: 46px !important; margin: 0 !important; width: 100% !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-size: 13.5px !important;
-    font-weight: 500 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    transition: color 0.25s ease !important;
+    color: rgba(255,255,255,0.78) !important; font-size: 13.5px !important;
+    font-weight: 500 !important; margin: 0 !important; padding: 0 !important;
+    transition: color 0.2s ease !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label:hover {
-    background-color: rgba(255, 255, 255, 0.15) !important;
-    border-color: rgba(255, 255, 255, 0.3) !important;
+    background-color: rgba(255,255,255,0.16) !important;
+    border-color: rgba(255,255,255,0.32) !important;
+    transform: translateX(3px) !important;
 }
-[data-testid="stRadio"] div[role="radiogroup"] > label:hover [data-testid="stMarkdownContainer"] p {
-    color: #ffffff !important;
-}
+[data-testid="stRadio"] div[role="radiogroup"] > label:hover [data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 [data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
-    background-color: #ffffff !important;
-    border-color: #ffffff !important;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16) !important;
+    background: rgba(255,255,255,0.95) !important;
+    border-color: rgba(255,255,255,0.95) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.10) !important;
+    transform: translateX(4px) !important;
 }
 [data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {
-    color: #5b21b6 !important;
-    font-weight: 700 !important;
-    font-size: 13.5px !important;
-}
-[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked):hover {
-    background-color: #ffffff !important;
-    border-color: #ffffff !important;
-}
-[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked):hover [data-testid="stMarkdownContainer"] p {
-    color: #5b21b6 !important;
+    color: #5b21b6 !important; font-weight: 700 !important;
 }
 
-/* Custom styling for inputs and selectboxes to make them pop out (nổi khối) */
+/* === Inputs & selects – pop-out === */
 div[data-baseweb="input"], div[data-baseweb="select"] {
     background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.05) !important;
+    border: 2px solid #94a3b8 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.06) !important;
     transition: all 0.2s ease-in-out !important;
 }
-
-div[data-baseweb="input"] input {
-    background-color: transparent !important;
-    color: #0f172a !important;
-}
-
-/* Hover & Focus state for better UX */
+div[data-baseweb="input"] input { background-color: transparent !important; color: #0f172a !important; font-weight: 500 !important; }
+[data-testid="stSelectbox"] > div > div, [data-baseweb="select"] > div { background-color: #ffffff !important; }
 div[data-baseweb="input"]:hover, div[data-baseweb="select"]:hover {
-    border-color: #94a3b8 !important;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+    border-color: #6366f1 !important; box-shadow: 0 4px 14px rgba(15,23,42,0.13) !important;
 }
-
 div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {
     border-color: #8b5cf6 !important;
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.18), 0 4px 12px rgba(15,23,42,0.10) !important;
+}
+.stTextInput label, .stSelectbox label {
+    font-weight: 700 !important; color: #1e293b !important;
+    font-size: 13px !important; margin-bottom: 6px !important;
 }
 
-/* Adjust labels for crisp readability */
-.stTextInput label, .stSelectbox label {
-    font-weight: 600 !important;
-    color: #334155 !important;
-    font-size: 13px !important;
-    margin-bottom: 6px !important;
+/* === Buttons === */
+button, [data-testid="stDownloadButton"] button,
+.stButton button, [data-testid="stBaseButton-secondary"] {
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1) !important;
+    border-radius: 10px !important; font-weight: 600 !important; font-size: 14px !important;
 }
+button:hover, [data-testid="stDownloadButton"] button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(15,39,68,0.18) !important;
+}
+button:active, [data-testid="stDownloadButton"] button:active { transform: scale(0.97) !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -653,15 +662,33 @@ div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within 
 with st.sidebar:
     logo_base64 = get_image_base64("logo.png")
     if logo_base64:
-        logo_html = f'<img src="data:image/png;base64,{logo_base64}" style="width: 100px; height: 100px; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.25); border: 2px solid rgba(255,255,255,0.25); margin-bottom: 12px;">'
+        logo_html = (
+            f'<div style="position:relative;display:inline-block;">'
+            f'<div style="position:absolute;inset:-4px;border-radius:50%;'
+            f'background:rgba(167,139,250,0.35);filter:blur(10px);animation:glowPulse 2.5s ease-in-out infinite;"></div>'
+            f'<img src="data:image/png;base64,{logo_base64}" '
+            f'style="width:96px;height:96px;border-radius:50%;position:relative;'
+            f'box-shadow:0 8px 24px rgba(0,0,0,0.30);border:2.5px solid rgba(255,255,255,0.35);'
+            f'display:block;">'
+            f'</div>'
+        )
     else:
-        logo_html = '<div style="font-size:36px;">⚡</div>'
-        
+        logo_html = '<div style="font-size:40px;filter:drop-shadow(0 0 12px rgba(167,139,250,0.7));">\u26a1</div>'
+
     st.markdown(f"""
-    <div style="text-align:center; padding: 16px 0 12px;">
+    <style>
+    @keyframes glowPulse {{
+        0%, 100% {{ box-shadow: 0 0 18px rgba(167,139,250,0.5), 0 0 36px rgba(139,92,246,0.2); }}
+        50%        {{ box-shadow: 0 0 28px rgba(167,139,250,0.8), 0 0 56px rgba(139,92,246,0.35); }}
+    }}
+    </style>
+    <div style="text-align:center; padding: 20px 0 14px;">
         {logo_html}
-        <div style="font-size:18px;font-weight:800;color:#e2e8f0;">Erablue</div>
-        <div style="font-size:11px;color:#cbd5e1;letter-spacing:.5px;text-transform:uppercase;margin-top:4px;">
+        <div style="font-size:19px;font-weight:800;color:#f5f3ff;margin-top:12px;letter-spacing:-0.02em;">Erablue</div>
+        <div style="display:inline-block;background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);
+            border:1px solid rgba(255,255,255,0.2);border-radius:20px;
+            font-size:10px;color:rgba(255,255,255,0.75);letter-spacing:1.2px;
+            text-transform:uppercase;padding:3px 12px;margin-top:6px;">
             Resource Viewer
         </div>
     </div>
@@ -743,8 +770,19 @@ if menu == "dashboard":
     st.markdown('<div class="page-wrap">', unsafe_allow_html=True)
     st.markdown(f"""
     <div class="page-header">
-        <h1>{T[lang]["db_title"]}</h1>
-        <p>{T[lang]["db_subtitle"]}</p>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+            <div>
+                <h1>{T[lang]["db_title"]}</h1>
+                <p>{T[lang]["db_subtitle"]}</p>
+            </div>
+            <div style="flex-shrink:0;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(99,102,241,0.1));
+                border:1px solid rgba(139,92,246,0.2);border-radius:14px;padding:10px 14px;
+                text-align:center;backdrop-filter:blur(8px);">
+                <div style="font-size:22px;line-height:1;">\U0001f4ca</div>
+                <div style="font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase;
+                    letter-spacing:0.5px;margin-top:4px;">Live</div>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -889,46 +927,72 @@ if menu == "dashboard":
         opened_mask = (valid_mask & (go_series <= pd.Timestamp(today)) & is_full_date) | opened_setup
         n_opened = int(opened_mask.sum())
 
-    # ── KPI row ────────────────────────────────────────────────────────────
-    c1, c2, c3, c4 = st.columns(4)
-    kpis = [
-        (c1, T[lang]["kpi_total"], total, T[lang]["kpi_stores"], "#2563eb"),
-        (c2, T[lang]["kpi_area"], n_areas, T[lang]["kpi_regions"].format(n=n_provinces), "#0891b2"),
-        (c3, T[lang]["kpi_best"], best_brand["table"],
-         T[lang]["kpi_best_desc"].format(brand=best_brand["name"]), best_brand["color"]),
-        (c4, T[lang]["kpi_brands"], len(brand_stats), T[lang]["kpi_brands_desc"], "#7c3aed"),
-    ]
-    for col, label, val, sub, color in kpis:
-        with col:
-            st.markdown(
-                f'<div class="kpi-card" style="border-left-color:{color};">'
-                f'<div class="kpi-label">{label}</div>'
-                f'<div class="kpi-value">{val}</div>'
-                f'<div class="kpi-sub">{sub}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+    # ── KPI row 1 (3 cards: Tổng, Khu Vực, Brand+ICT gộp) ───────────────────
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(
+            f'<div class="kpi-card" data-icon="\U0001f3ea" '
+            f'style="--kpi-accent:linear-gradient(90deg,#3b82f6,#6366f1);">'
+            f'<div class="kpi-label">{T[lang]["kpi_total"]}</div>'
+            f'<div class="kpi-value">{total}</div>'
+            f'<div class="kpi-sub">{T[lang]["kpi_stores"]}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    with c2:
+        st.markdown(
+            f'<div class="kpi-card" data-icon="\U0001f5fa" '
+            f'style="--kpi-accent:linear-gradient(90deg,#0891b2,#06b6d4);">'
+            f'<div class="kpi-label">{T[lang]["kpi_area"]}</div>'
+            f'<div class="kpi-value">{n_areas}</div>'
+            f'<div class="kpi-sub">{T[lang]["kpi_regions"].format(n=n_provinces)}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    with c3:
+        brand_label = T[lang]["kpi_best"]
+        brands_label = T[lang]["kpi_brands"]
+        brand_color = best_brand["color"]
+        ict_sub = "hãng ICT đang quản lý" if lang == "vi" else "ICT brands managed"
+        st.markdown(
+            f'<div class="kpi-card" data-icon="\U0001f3c6" '
+            f'style="--kpi-accent:linear-gradient(90deg,{brand_color},#8b5cf6);">'
+            f'<div class="kpi-label">{brand_label} '
+            f'<span style="opacity:.6;">&#183;</span> '
+            f'<span style="color:#7c3aed">{brands_label}</span></div>'
+            f'<div style="display:flex;align-items:flex-end;gap:20px;margin-top:2px;">'
+            f'  <div>'
+            f'    <div class="kpi-value" style="font-size:2.5rem;">{best_brand["table"]}</div>'
+            f'    <div class="kpi-sub">{T[lang]["kpi_best_desc"].format(brand=best_brand["name"])}</div>'
+            f'  </div>'
+            f'  <div style="width:1px;height:44px;background:#e2e8f0;"></div>'
+            f'  <div>'
+            f'    <div class="kpi-value" style="font-size:2.4rem;color:#7c3aed;">{len(brand_stats)}</div>'
+            f'    <div class="kpi-sub">{ict_sub}</div>'
+            f'  </div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     # ── KPI row 2 (Operation Status) ───────────────────────────────────────
     st.markdown('<div style="margin-top:12px;margin-bottom:8px;"></div>', unsafe_allow_html=True)
     c1_2, c2_2, c3_2 = st.columns(3)
-    
-    today = datetime.date.today()
+    today_disp = datetime.date.today()
     upcoming_val = n_upcoming if n_upcoming > 0 else (
         "Đang cập nhật" if lang == "vi" else "Updating"
     )
     kpis_row2 = [
-        (c1_2, T[lang]["kpi_opened"], n_opened, T[lang]["kpi_opened_desc"], "#16a34a"),
-        (c2_2, T[lang]["kpi_this_month"], n_this_month, T[lang]["kpi_this_month_desc"].format(month=today.month, year=today.year), "#ea580c"),
-        (c3_2, T[lang]["kpi_upcoming"], upcoming_val, T[lang]["kpi_upcoming_desc"], "#2563eb"),
+        (c1_2, T[lang]["kpi_opened"],     n_opened,      T[lang]["kpi_opened_desc"],     "#16a34a"),
+        (c2_2, T[lang]["kpi_this_month"], n_this_month,  T[lang]["kpi_this_month_desc"].format(month=today_disp.month, year=today_disp.year), "#ea580c"),
+        (c3_2, T[lang]["kpi_upcoming"],   upcoming_val,  T[lang]["kpi_upcoming_desc"],   "#2563eb"),
     ]
     for col, label, val, sub, color in kpis_row2:
         val_str = str(val)
-        # If the value is a text string (not a simple number), use a smaller font size to fit well
         font_size = "1.5rem" if any(c.isalpha() for c in val_str) else "2rem"
         with col:
             st.markdown(
-                f'<div class="kpi-card" style="border-left-color:{color}; padding: 16px 20px;">'
+                f'<div class="kpi-card" style="border-left-color:{color}; padding:16px 20px;">'
                 f'<div class="kpi-label">{label}</div>'
                 f'<div class="kpi-value" style="font-size:{font_size};color:{color};">{val}</div>'
                 f'<div class="kpi-sub">{sub}</div>'
@@ -1912,13 +1976,21 @@ if menu == "pending":
             addr_val   = str(row[addr_col])   if addr_col   and addr_col   in row.index else "—"
             go_val     = str(row[go_col])     if go_col     and go_col     in row.index else "—"
 
+            # Strip time component (00:00:00) from GO date if present
+            go_display = go_val
+            if go_val and go_val != "—" and go_val != "nan":
+                # Handle Timestamp/datetime string like "2023-10-23 00:00:00"
+                go_display = go_val.split(" ")[0] if " " in go_val else go_val
+                # Also strip trailing ".0" from float representations
+                go_display = go_display.rstrip(".0") if go_display.endswith(".0") else go_display
+
             rows_html += (
                 f"<tr>"
                 f"<td><b>{_html.escape(name_val)}</b></td>"
                 f"<td><span class='badge-region'>{_html.escape(region_val)}</span></td>"
                 f"<td><span class='badge-prov'>{_html.escape(prov_val)}</span></td>"
-                f"<td style='color:#64748b;font-size:12px;'>{_html.escape(addr_val)}</td>"
-                f"<td style='color:#94a3b8;font-size:12px;'>{_html.escape(go_val)}</td>"
+                f"<td style='color:#334155;font-size:12px;text-align:left;'>{_html.escape(addr_val)}</td>"
+                f"<td style='color:#475569;font-size:12px;font-weight:600;text-align:left;'>{_html.escape(go_display)}</td>"
                 f"</tr>"
             )
 
