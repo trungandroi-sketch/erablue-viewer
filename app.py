@@ -660,22 +660,75 @@ button:active, [data-testid="stDownloadButton"] button:active { transform: scale
    ============================================================ */
 @media screen and (max-width: 768px) {
 
-    /* === Hide sidebar, show only main content === */
+    /* === Sidebar: slide-in drawer === */
     section[data-testid="stSidebar"] {
         position: fixed !important;
         left: -100% !important;
         top: 0 !important;
-        height: 100vh !important;
+        height: 100dvh !important;
         width: 82vw !important;
         min-width: unset !important;
-        max-width: 320px !important;
+        max-width: 300px !important;
         z-index: 9999 !important;
-        transition: left 0.35s cubic-bezier(0.34,1.56,0.64,1) !important;
-        box-shadow: 8px 0 40px rgba(0,0,0,0.35) !important;
+        transition: left 0.32s cubic-bezier(0.34,1.2,0.64,1) !important;
+        box-shadow: 6px 0 32px rgba(0,0,0,0.30) !important;
         overflow-y: auto !important;
     }
-    section[data-testid="stSidebar"].mobile-open {
+    /* When Streamlit marks it NOT collapsed, show it */
+    section[data-testid="stSidebar"][aria-expanded="true"] {
         left: 0 !important;
+    }
+
+    /* === Show & restyle the native Streamlit collapse button as hamburger === */
+    /* The collapse button (when sidebar is open) */
+    [data-testid="stSidebarCollapseButton"],
+    [aria-label="Collapse sidebar"] {
+        display: flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        z-index: 10001 !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #7c3aed, #4c1d95) !important;
+        border: none !important;
+        box-shadow: 0 4px 16px rgba(91,33,182,0.45) !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+    }
+    /* The expand button (when sidebar is closed) */
+    [data-testid="collapsedControl"],
+    [aria-label="Expand sidebar"] {
+        display: flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        z-index: 10001 !important;
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #7c3aed, #4c1d95) !important;
+        border: none !important;
+        box-shadow: 0 4px 16px rgba(91,33,182,0.45) !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+    }
+    /* Style the SVG icons inside the buttons white */
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="collapsedControl"] svg,
+    [aria-label="Collapse sidebar"] svg,
+    [aria-label="Expand sidebar"] svg {
+        fill: #ffffff !important;
+        stroke: #ffffff !important;
+        width: 20px !important;
+        height: 20px !important;
     }
 
     /* === Full-width main content === */
@@ -689,28 +742,26 @@ button:active, [data-testid="stDownloadButton"] button:active { transform: scale
 
     /* === Page header compact === */
     .page-header {
-        padding: 16px 18px 14px !important;
+        padding: 14px 16px 12px !important;
         border-radius: 14px !important;
-        margin-bottom: 14px !important;
+        margin-bottom: 12px !important;
+        margin-top: 10px !important;
     }
-    .page-header h1 {
-        font-size: 18px !important;
-        line-height: 1.25 !important;
-    }
-    .page-header p { font-size: 12px !important; margin-top: 4px !important; }
-    .page-header::before { width: 100px !important; height: 100px !important; }
+    .page-header h1 { font-size: 17px !important; line-height: 1.25 !important; }
+    .page-header p  { font-size: 11.5px !important; margin-top: 4px !important; }
+    .page-header > div > div:last-child { display: none !important; } /* hide badge icon on mobile */
 
-    /* === KPI Cards – stack to single column === */
+    /* === KPI Cards compact === */
     .kpi-card {
         padding: 14px 16px 12px !important;
         border-radius: 14px !important;
     }
-    .kpi-value { font-size: 2.1rem !important; }
+    .kpi-value { font-size: 2rem !important; }
     .kpi-label { font-size: 10px !important; }
-    .kpi-sub   { font-size: 11.5px !important; }
-    .kpi-card::after { font-size: 40px !important; }
+    .kpi-sub   { font-size: 11px !important; }
+    .kpi-card::after { font-size: 38px !important; }
 
-    /* Stack Streamlit columns to single column on mobile */
+    /* === Stack Streamlit columns vertically === */
     [data-testid="stHorizontalBlock"] {
         flex-direction: column !important;
         gap: 10px !important;
@@ -721,10 +772,10 @@ button:active, [data-testid="stDownloadButton"] button:active { transform: scale
         min-width: unset !important;
     }
 
-    /* === Section title smaller === */
+    /* === Section title === */
     .section-title {
         font-size: 15px !important;
-        margin: 1.25rem 0 0.75rem !important;
+        margin: 1.1rem 0 0.7rem !important;
     }
 
     /* === Brand rows compact === */
@@ -735,178 +786,28 @@ button:active, [data-testid="stDownloadButton"] button:active { transform: scale
     }
     .brand-bar-bg { height: 6px !important; }
 
-    /* === Filter bar compact === */
-    .filter-bar {
-        padding: 10px 12px !important;
-        border-radius: 10px !important;
-    }
+    /* === Filter bar === */
+    .filter-bar { padding: 10px 12px !important; border-radius: 10px !important; }
 
-    /* === Plotly chart smaller === */
+    /* === Charts smaller === */
     [data-testid="stPlotlyChart"] { max-height: 220px !important; }
 
-    /* === Data badge smaller === */
+    /* === Data badge === */
     .data-badge { font-size: 11px !important; padding: 4px 10px !important; }
 
-    /* === General font scale-down === */
-    html, body, [data-testid="stAppViewContainer"] {
-        font-size: 13.5px !important;
-    }
+    /* === Font scale-down === */
+    html, body, [data-testid="stAppViewContainer"] { font-size: 13.5px !important; }
 
-    /* === Inputs full width, bigger tap target === */
+    /* === Inputs & buttons – bigger tap target === */
     div[data-baseweb="input"], div[data-baseweb="select"] {
-        border-radius: 8px !important;
-        min-height: 42px !important;
+        border-radius: 8px !important; min-height: 42px !important;
     }
+    button, .stButton button { min-height: 40px !important; font-size: 13px !important; }
 
-    /* === Buttons bigger tap target === */
-    button, .stButton button {
-        min-height: 42px !important;
-        font-size: 13.5px !important;
-    }
-
-    /* === Metric/number text in col=2 layout doesn't overflow === */
-    p, span, div { word-break: break-word; }
-}
-
-/* === Floating hamburger menu button (mobile only) === */
-#mobile-menu-btn {
-    display: none;
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    z-index: 10000;
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #7c3aed, #4c1d95);
-    border: none;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 14px rgba(91,33,182,0.45);
-    font-size: 20px;
-    color: white;
-    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
-#mobile-menu-btn:hover { transform: scale(1.08); }
-
-/* Overlay when sidebar open on mobile */
-#mobile-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 9998;
-    backdrop-filter: blur(3px);
-}
-
-@media screen and (max-width: 768px) {
-    #mobile-menu-btn { display: flex !important; }
+    /* Word wrap safety */
+    p, span { word-break: break-word; }
 }
 </style>
-""", unsafe_allow_html=True)
-
-# ── Inject hamburger button + mobile JS ──────────────────────────────────────
-st.markdown("""
-<button id="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
-<div id="mobile-overlay" onclick="closeMobileSidebar()"></div>
-<script>
-(function() {
-    function isMobile() { return window.innerWidth <= 768; }
-
-    window.toggleMobileSidebar = function() {
-        if (!isMobile()) return;
-        var sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
-        var overlay = window.parent.document.getElementById('mobile-overlay');
-        var btn     = window.parent.document.getElementById('mobile-menu-btn');
-        if (!sidebar) return;
-        var isOpen = sidebar.classList.contains('mobile-open');
-        if (isOpen) {
-            sidebar.classList.remove('mobile-open');
-            if (overlay) overlay.style.display = 'none';
-            if (btn) btn.textContent = '☰';
-        } else {
-            sidebar.classList.add('mobile-open');
-            if (overlay) overlay.style.display = 'block';
-            if (btn) btn.textContent = '✕';
-        }
-    };
-
-    window.closeMobileSidebar = function() {
-        var sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
-        var overlay = window.parent.document.getElementById('mobile-overlay');
-        var btn     = window.parent.document.getElementById('mobile-menu-btn');
-        if (sidebar) sidebar.classList.remove('mobile-open');
-        if (overlay) overlay.style.display = 'none';
-        if (btn) btn.textContent = '☰';
-    };
-
-    // Also inject the btn into parent document so it works in Streamlit iframe
-    if (window !== window.parent) {
-        var parentDoc = window.parent.document;
-        if (!parentDoc.getElementById('mobile-menu-btn')) {
-            var btn = parentDoc.createElement('button');
-            btn.id = 'mobile-menu-btn';
-            btn.textContent = '☰';
-            btn.setAttribute('aria-label', 'Menu');
-            btn.style.cssText = [
-                'display:none','position:fixed','top:12px','left:12px',
-                'z-index:10000','width:42px','height:42px','border-radius:12px',
-                'background:linear-gradient(135deg,#7c3aed,#4c1d95)','border:none',
-                'cursor:pointer','align-items:center','justify-content:center',
-                'box-shadow:0 4px 14px rgba(91,33,182,0.45)','font-size:20px',
-                'color:white','transition:all 0.3s ease'
-            ].join(';');
-            btn.onclick = window.toggleMobileSidebar;
-            parentDoc.body.appendChild(btn);
-
-            var overlay = parentDoc.createElement('div');
-            overlay.id = 'mobile-overlay';
-            overlay.style.cssText = [
-                'display:none','position:fixed','inset:0',
-                'background:rgba(0,0,0,0.45)','z-index:9998',
-                'backdrop-filter:blur(3px)'
-            ].join(';');
-            overlay.onclick = window.closeMobileSidebar;
-            parentDoc.body.appendChild(overlay);
-
-            // Show btn on mobile
-            function checkMobile() {
-                btn.style.display = (window.parent.innerWidth <= 768) ? 'flex' : 'none';
-            }
-            checkMobile();
-            window.parent.addEventListener('resize', checkMobile);
-
-            // Inject mobile CSS into parent doc
-            var style = parentDoc.createElement('style');
-            style.textContent = `
-                @media (max-width: 768px) {
-                    #mobile-menu-btn { display: flex !important; }
-                    section[data-testid="stSidebar"] {
-                        position: fixed !important; left: -100% !important;
-                        top: 0 !important; height: 100vh !important;
-                        width: 82vw !important; max-width: 320px !important;
-                        z-index: 9999 !important; overflow-y: auto !important;
-                        transition: left 0.35s cubic-bezier(0.34,1.56,0.64,1) !important;
-                    }
-                    section[data-testid="stSidebar"].mobile-open { left: 0 !important; }
-                    [data-testid="stMain"] .block-container {
-                        padding: 0.75rem 0.85rem 2rem !important;
-                        margin-left: 0 !important; max-width: 100vw !important;
-                    }
-                    [data-testid="stHorizontalBlock"] {
-                        flex-direction: column !important; gap: 10px !important;
-                    }
-                    [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
-                        width: 100% !important; flex: 1 1 100% !important;
-                    }
-                }
-            `;
-            parentDoc.head.appendChild(style);
-        }
-    }
-})();
-</script>
 """, unsafe_allow_html=True)
 
 
